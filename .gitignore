@@ -1,0 +1,42 @@
+# Build & IDE
+out/
+build/
+*.class
+*.iml
+
+# Maven
+target/
+!.mvn/wrapper/maven-wrapper.jar
+.mvnd/
+
+# IntelliJ IDEA
+.idea/
+*.ipr
+*.iws
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# Eclipse
+.project
+.classpath
+.settings/
+
+# OS-specific files
+.DS_Store
+Thumbs.db
+*.swp
+
+# Logs and Temp Files
+*.log
+*.tmp
+*.bak
+*.swp
+
+# Compiled JAR/WAR files
+*.jar
+*.war
+
+# Java-Specific
+hs_err_pid*.log
