@@ -3,8 +3,8 @@ package com.game.minecraft.camera;
 import static org.lwjgl.opengl.GL46C.*;
 import static org.lwjgl.system.MemoryStack.stackPush;
 
-import com.game.minecraft.blocks.Block;
 import com.game.minecraft.utils.FileReader;
+import com.game.minecraft.world.Block;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -34,8 +34,8 @@ public class Renderer {
     uMVP = glGetUniformLocation(shaderProgram, "uMVP");
     atlasTextureId = loadFullAtlas("assets/atlas.png");
 
-    blockA = new Block(256.0f, 16.0f, 0, 240, 0.0f, 0.0f, 0.0f);
-    blockB = new Block(256.0f, 16.0f, 32, 240, 1.0f, 0.0f, 0.0f);
+    blockA = new Block(0, 240, 0.0f, -10f, -50f);
+    blockB = new Block(32, 240, 1.0f, -10f, -50f);
 
     glEnable(GL_DEPTH_TEST); // add 3d layers to models
   }
@@ -55,15 +55,15 @@ public class Renderer {
 
     Matrix4f view = camera.getViewMatrix(); // cameras position & orient
 
-    renderBlock(blockA, projection, view, blockA.getModelMatrix4f());
-    renderBlock(blockB, projection, view, blockB.getModelMatrix4f());
+    renderBlock(blockA, projection, view);
+    renderBlock(blockB, projection, view);
 
     glBindVertexArray(0);
     glUseProgram(0);
   }
 
-  private void renderBlock(Block block, Matrix4f projection, Matrix4f view, Matrix4f model) {
-    Matrix4f mvp = projection.mul(view, new Matrix4f()).mul(model);
+  private void renderBlock(Block block, Matrix4f projection, Matrix4f view) {
+    Matrix4f mvp = projection.mul(view, new Matrix4f()).mul(block.getModelMatrix4f());
     setMVPUniform(mvp);
     glBindTexture(GL_TEXTURE_2D, atlasTextureId);
     glBindVertexArray(block.getVaoId());

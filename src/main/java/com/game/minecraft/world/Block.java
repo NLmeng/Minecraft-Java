@@ -1,4 +1,4 @@
-package com.game.minecraft.blocks;
+package com.game.minecraft.world;
 
 import org.lwjgl.system.MemoryStack;
 
@@ -17,8 +17,8 @@ public class Block {
     private final float ypos;
     private final float zpos;
 
-    public Block(float atlasSize, float tileSize, int pixelX, int pixelY, float xpos, float ypos, float zpos) {
-        this.vaoId = createBlockVAO(atlasSize, tileSize, pixelX, pixelY);
+    public Block(int pixelX, int pixelY, float xpos, float ypos, float zpos) {
+        this.vaoId = createBlockVAO(pixelX, pixelY);
         this.xpos = xpos;
         this.ypos = ypos;
         this.zpos = zpos;
@@ -49,12 +49,12 @@ public class Block {
         return zpos;
     }
 
-    private int createBlockVAO(float atlasSize, float tileSize, int pixelX, int pixelY) {
-        float uStart = pixelX / atlasSize;
-        float uEnd = (pixelX + tileSize) / atlasSize;
-        float vStart = pixelY / atlasSize;
-        float vEnd = (pixelY + tileSize) / atlasSize;
-
+    private int createBlockVAO(int pixelX, int pixelY) {
+        float uStart = pixelX / Sizes.ATLAS;
+        float uEnd = (pixelX + Sizes.NORMAL_TILE) / Sizes.ATLAS;
+        float vStart = pixelY / Sizes.ATLAS;
+        float vEnd = (pixelY + Sizes.NORMAL_TILE) / Sizes.ATLAS;
+        
         float[] vertexData = {
             // 3d coords  / 2d texture coords
             // X,Y,Z      / U,V
