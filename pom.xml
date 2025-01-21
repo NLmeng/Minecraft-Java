@@ -113,7 +113,7 @@
                             <include>**/*.java</include>
                         </includes>
                         <excludes>
-                            <exclude>src/main/java/com/game/minecraft/world/*.java</exclude>
+                            <exclude>src/main/java/com/game/minecraft/world/Block.java</exclude>
                         </excludes>
                     </java>
                 </configuration>

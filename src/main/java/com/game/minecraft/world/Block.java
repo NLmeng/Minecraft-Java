@@ -130,7 +130,14 @@ public class Block {
             glBufferData(GL_ARRAY_BUFFER, vertexBuffer, GL_STATIC_DRAW);
         }
 
-        glVertexAttribPointer(0, 3, GL_FLOAT, false, 5 * Float.BYTES, 0L);
+        glVertexAttribPointer(
+          0, // index, use 0 for xyz
+          3, // num of components: xyz
+          GL_FLOAT, // data type
+          false, // is normalized?
+          5 * Float.BYTES, //offset to next attributes (3 from index 0, 2 from index 1 below)
+          0L // starting position
+        );
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(1, 2, GL_FLOAT, false, 5 * Float.BYTES, 3L * Float.BYTES);
         glEnableVertexAttribArray(1);
