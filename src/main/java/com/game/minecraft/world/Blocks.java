@@ -9,6 +9,7 @@ public enum Blocks {
   private final byte topX, topY;
   private final byte bottomX, bottomY;
   private final byte sideX, sideY;
+  private boolean isSolid;
 
   Blocks(int topX, int topY, int bottomX, int bottomY, int sideX, int sideY) {
     this.topX = (byte) topX;
@@ -17,6 +18,15 @@ public enum Blocks {
     this.bottomY = (byte) bottomY;
     this.sideX = (byte) sideX;
     this.sideY = (byte) sideY;
+    this.isSolid = false;
+  }
+
+  public boolean isSolid() {
+    return isSolid;
+  }
+
+  public void setSolidStateAs(boolean state) {
+    isSolid = state;
   }
 
   public int getTopX() {
