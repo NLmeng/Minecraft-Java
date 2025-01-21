@@ -17,8 +17,8 @@ public class Block {
     private final float ypos;
     private final float zpos;
 
-    public Block(int pixelX, int pixelY, float xpos, float ypos, float zpos) {
-        this.vaoId = createBlockVAO(pixelX, pixelY);
+    public Block(float xpos, float ypos, float zpos, Blocks block) {
+        this.vaoId = createBlockVAO(block);
         this.xpos = xpos;
         this.ypos = ypos;
         this.zpos = zpos;
@@ -49,63 +49,73 @@ public class Block {
         return zpos;
     }
 
-    private int createBlockVAO(int pixelX, int pixelY) {
-        float uStart = pixelX / Sizes.ATLAS;
-        float uEnd = (pixelX + Sizes.NORMAL_TILE) / Sizes.ATLAS;
-        float vStart = pixelY / Sizes.ATLAS;
-        float vEnd = (pixelY + Sizes.NORMAL_TILE) / Sizes.ATLAS;
-        
+    private int createBlockVAO(Blocks block) {
+        float uTopStart = block.getTopX() / Sizes.ATLAS;
+        float uTopEnd = (block.getTopX() + Sizes.NORMAL_TILE) / Sizes.ATLAS;
+        float vTopStart = block.getTopY() / Sizes.ATLAS;
+        float vTopEnd = (block.getTopY() + Sizes.NORMAL_TILE) / Sizes.ATLAS;
+
+        float uBottomStart = block.getBottomX() / Sizes.ATLAS;
+        float uBottomEnd = (block.getBottomX() + Sizes.NORMAL_TILE) / Sizes.ATLAS;
+        float vBottomStart = block.getBottomY() / Sizes.ATLAS;
+        float vBottomEnd = (block.getBottomY() + Sizes.NORMAL_TILE) / Sizes.ATLAS;
+
+        float uSideStart = block.getSideX() / Sizes.ATLAS;
+        float uSideEnd = (block.getSideX() + Sizes.NORMAL_TILE) / Sizes.ATLAS;
+        float vSideStart = block.getSideY() / Sizes.ATLAS;
+        float vSideEnd = (block.getSideY() + Sizes.NORMAL_TILE) / Sizes.ATLAS;
+
         float[] vertexData = {
+            // each faces +- 0.5f to extend about 0,0,0 to 1x1x1
             // 3d coords  / 2d texture coords
             // X,Y,Z      / U,V
+            // Top face
+            -0.5f,  0.5f, -0.5f,  uTopStart, vTopStart,
+            0.5f,  0.5f, -0.5f,  uTopEnd,   vTopStart,
+            0.5f,  0.5f,  0.5f,  uTopEnd,   vTopEnd,
+            0.5f,  0.5f,  0.5f,  uTopEnd,   vTopEnd,
+            -0.5f,  0.5f,  0.5f,  uTopStart, vTopEnd,
+            -0.5f,  0.5f, -0.5f,  uTopStart, vTopStart,
 
-            // Front
-            -0.5f, -0.5f,  0.5f,  uStart, vEnd,
-             0.5f, -0.5f,  0.5f,  uEnd,   vEnd,
-             0.5f,  0.5f,  0.5f,  uEnd,   vStart,
-             0.5f,  0.5f,  0.5f,  uEnd,   vStart,
-            -0.5f,  0.5f,  0.5f,  uStart, vStart,
-            -0.5f, -0.5f,  0.5f,  uStart, vEnd,
+            // Bottom face
+            -0.5f, -0.5f, -0.5f,  uBottomStart, vBottomStart,
+            0.5f, -0.5f, -0.5f,  uBottomEnd,   vBottomStart,
+            0.5f, -0.5f,  0.5f,  uBottomEnd,   vBottomEnd,
+            0.5f, -0.5f,  0.5f,  uBottomEnd,   vBottomEnd,
+            -0.5f, -0.5f,  0.5f,  uBottomStart, vBottomEnd,
+            -0.5f, -0.5f, -0.5f,  uBottomStart, vBottomStart,
 
-            // Back
-            -0.5f, -0.5f, -0.5f,  uEnd,   vEnd,
-             0.5f, -0.5f, -0.5f,  uStart, vEnd,
-             0.5f,  0.5f, -0.5f,  uStart, vStart,
-             0.5f,  0.5f, -0.5f,  uStart, vStart,
-            -0.5f,  0.5f, -0.5f,  uEnd,   vStart,
-            -0.5f, -0.5f, -0.5f,  uEnd,   vEnd,
+            // Front face
+            -0.5f, -0.5f,  0.5f,  uSideStart, vSideEnd,
+            0.5f, -0.5f,  0.5f,  uSideEnd,   vSideEnd,
+            0.5f,  0.5f,  0.5f,  uSideEnd,   vSideStart,
+            0.5f,  0.5f,  0.5f,  uSideEnd,   vSideStart,
+            -0.5f,  0.5f,  0.5f,  uSideStart, vSideStart,
+            -0.5f, -0.5f,  0.5f,  uSideStart, vSideEnd,
 
-            // Left
-            -0.5f, -0.5f, -0.5f,  uEnd,   vEnd,
-            -0.5f, -0.5f,  0.5f,  uStart, vEnd,
-            -0.5f,  0.5f,  0.5f,  uStart, vStart,
-            -0.5f,  0.5f,  0.5f,  uStart, vStart,
-            -0.5f,  0.5f, -0.5f,  uEnd,   vStart,
-            -0.5f, -0.5f, -0.5f,  uEnd,   vEnd,
+            // Back face
+            -0.5f, -0.5f, -0.5f,  uSideEnd,   vSideEnd,
+            0.5f, -0.5f, -0.5f,  uSideStart, vSideEnd,
+            0.5f,  0.5f, -0.5f,  uSideStart, vSideStart,
+            0.5f,  0.5f, -0.5f,  uSideStart, vSideStart,
+            -0.5f,  0.5f, -0.5f,  uSideEnd,   vSideStart,
+            -0.5f, -0.5f, -0.5f,  uSideEnd,   vSideEnd,
 
-            // Right
-             0.5f, -0.5f,  0.5f,  uEnd,   vEnd,
-             0.5f, -0.5f, -0.5f,  uStart, vEnd,
-             0.5f,  0.5f, -0.5f,  uStart, vStart,
-             0.5f,  0.5f, -0.5f,  uStart, vStart,
-             0.5f,  0.5f,  0.5f,  uEnd,   vStart,
-             0.5f, -0.5f,  0.5f,  uEnd,   vEnd,
+            // Left face
+            -0.5f, -0.5f, -0.5f,  uSideStart, vSideEnd,
+            -0.5f, -0.5f,  0.5f,  uSideEnd,   vSideEnd,
+            -0.5f,  0.5f,  0.5f,  uSideEnd,   vSideStart,
+            -0.5f,  0.5f,  0.5f,  uSideEnd,   vSideStart,
+            -0.5f,  0.5f, -0.5f,  uSideStart, vSideStart,
+            -0.5f, -0.5f, -0.5f,  uSideStart, vSideEnd,
 
-            // Top
-            -0.5f,  0.5f, -0.5f,  uStart, vStart,
-             0.5f,  0.5f, -0.5f,  uEnd,   vStart,
-             0.5f,  0.5f,  0.5f,  uEnd,   vEnd,
-             0.5f,  0.5f,  0.5f,  uEnd,   vEnd,
-            -0.5f,  0.5f,  0.5f,  uStart, vEnd,
-            -0.5f,  0.5f, -0.5f,  uStart, vStart,
-
-            // Bottom
-            -0.5f, -0.5f, -0.5f,  uEnd,   vStart,
-             0.5f, -0.5f, -0.5f,  uStart, vStart,
-             0.5f, -0.5f,  0.5f,  uStart, vEnd,
-             0.5f, -0.5f,  0.5f,  uStart, vEnd,
-            -0.5f, -0.5f,  0.5f,  uEnd,   vEnd,
-            -0.5f, -0.5f, -0.5f,  uEnd,   vStart,
+            // Right face
+            0.5f, -0.5f,  0.5f,  uSideEnd,   vSideEnd,
+            0.5f, -0.5f, -0.5f,  uSideStart, vSideEnd,
+            0.5f,  0.5f, -0.5f,  uSideStart, vSideStart,
+            0.5f,  0.5f, -0.5f,  uSideStart, vSideStart,
+            0.5f,  0.5f,  0.5f,  uSideEnd,   vSideStart,
+            0.5f, -0.5f,  0.5f,  uSideEnd,   vSideEnd,
         };
 
         int vaoId = glGenVertexArrays();
