@@ -3,11 +3,8 @@
 # Exit immediately if a command exits with a non-zero status
 set -e
 
-# Compile
-mvn clean compile
+mvn clean package
 
-# auto format
 mvn spotless:apply
 
-# Run
-mvn exec:java
+java -XstartOnFirstThread -jar target/minecraft-1.0-SNAPSHOT.jar
