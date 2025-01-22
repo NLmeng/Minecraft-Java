@@ -68,6 +68,14 @@ public class Camera {
     return new Matrix4f().lookAt(position, new Vector3f(position).add(front), up);
   }
 
+  public Vector3f getPosition() {
+    return position;
+  }
+
+  public Vector3f getFront() {
+    return front;
+  }
+
   private void updateCameraVectors() {
     Vector3f newFront = new Vector3f();
     newFront.x = (float) (Math.cos(Math.toRadians(yaw)) * Math.cos(Math.toRadians(pitch)));

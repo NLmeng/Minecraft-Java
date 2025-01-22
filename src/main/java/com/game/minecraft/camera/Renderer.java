@@ -10,6 +10,7 @@ import com.game.minecraft.world.Chunk;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.Random;
 import org.joml.Matrix4f;
 import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
@@ -47,6 +48,21 @@ public class Renderer {
     glEnable(GL_DEPTH_TEST); // add 3d layers to models
   }
 
+  // private long lastRemovalTime;
+  // private static final long REMOVAL_INTERVAL = 10000;
+
+  // private void testRemoveRandomTopLayerBlocks(Chunk chunk) {
+  //   Random random = new Random();
+
+  //   for (int x = 0; x < Chunk.CHUNK_X; x++) {
+  //     for (int z = 0; z < Chunk.CHUNK_Z; z++) {
+  //       if (random.nextBoolean()) {
+  //         chunk.setBlockAt(x, 0, z, null);
+  //       }
+  //     }
+  //   }
+  // }
+
   public void render(Camera camera, int width, int height) {
     glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -62,11 +78,16 @@ public class Renderer {
 
     Matrix4f view = camera.getViewMatrix(); // cameras position & orient
 
+    // long currentTime = System.currentTimeMillis();
+    // if (currentTime - lastRemovalTime >= REMOVAL_INTERVAL) {
+    //   testRemoveRandomTopLayerBlocks(chunkA);
+    //   lastRemovalTime = currentTime;
+    // }
+
     renderBlock(blockA, projection, view);
     renderBlock(blockB, projection, view);
 
     renderChunk(chunkA, projection, view);
-
     glBindVertexArray(0);
     glUseProgram(0);
   }

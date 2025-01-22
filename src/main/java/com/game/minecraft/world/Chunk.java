@@ -14,6 +14,7 @@ public class Chunk {
   public static final int CHUNK_Z = 16;
 
   private final Blocks[][][] blocks = new Blocks[CHUNK_X][CHUNK_Y][CHUNK_Z];
+  private boolean isDirty;
 
   private final float xcoord, ycoord, zcoord;
   private int chunkVaoId;
@@ -29,6 +30,7 @@ public class Chunk {
 
     generateFlatTerrain();
     buildMesh();
+    this.isDirty = true;
   }
 
   public float getXCoord() {
@@ -51,6 +53,30 @@ public class Chunk {
     return vertexCount;
   }
 
+  public boolean isDirty() {
+    return isDirty;
+  }
+
+  public void setBlockAt(int x, int y, int z, Blocks block) {
+    if (x < 0 || x >= CHUNK_X || y < 0 || y >= CHUNK_Y || z < 0 || z >= CHUNK_Z) {
+      return;
+    }
+    blocks[x][y][z] = block;
+    isDirty = true;
+    buildMesh();
+  }
+
+  public Blocks[][][] getAllBlocks() {
+    return blocks;
+  }
+
+  public Blocks getBlockAt(int x, int y, int z) {
+    if (x < 0 || x >= Chunk.CHUNK_X || y < 0 || y >= Chunk.CHUNK_Y || z < 0 || z >= Chunk.CHUNK_Z)
+      return null;
+
+    return blocks[x][y][z];
+  }
+
   public Matrix4f getModelMatrix4f() {
     return modelMatrix;
   }
@@ -58,7 +84,6 @@ public class Chunk {
   public void buildMesh() {
     List<Float> vertices = new ArrayList<>();
 
-    // Generate vertex data for each block in the chunk
     for (int x = 0; x < CHUNK_X; x++) {
       for (int y = 0; y < CHUNK_Y; y++) {
         for (int z = 0; z < CHUNK_Z; z++) {
@@ -69,7 +94,6 @@ public class Chunk {
       }
     }
 
-    // Convert List<Float> to float[]
     float[] vertexData = new float[vertices.size()];
     for (int i = 0; i < vertices.size(); i++) {
       vertexData[i] = vertices.get(i);
@@ -79,7 +103,6 @@ public class Chunk {
     FloatBuffer vertexBuffer = BufferUtils.createFloatBuffer(vertexData.length);
     vertexBuffer.put(vertexData).flip();
 
-    // Upload vertex data to GPU
     chunkVaoId = glGenVertexArrays();
     glBindVertexArray(chunkVaoId);
 
@@ -96,6 +119,7 @@ public class Chunk {
     glBindVertexArray(0);
 
     vertexCount = vertexData.length / 5; // Each vertex has 5 floats (position + texture)
+    isDirty = false;
   }
 
   private void addBlockToMesh(List<Float> vertices, int x, int y, int z) {
@@ -336,9 +360,6 @@ public class Chunk {
           else if (y <= 65) blocks[x][y][z] = Blocks.BEDROCK;
         }
       }
-    }
-    for (int x = 0; x < CHUNK_X; x++) {
-      blocks[x][0][0] = null;
     }
   }
 }
