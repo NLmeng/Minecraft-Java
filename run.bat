@@ -1,3 +1,3 @@
 @echo off
-mvn clean compile && mvn spotless:apply && mvn exec:java
+mvn clean package && mvn spotless:apply && java -jar target/minecraft-1.0-SNAPSHOT.jar
 pause
