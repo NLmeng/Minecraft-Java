@@ -166,9 +166,9 @@
                         <includes>
                             <include>**/*.java</include>
                         </includes>
-                        <excludes>
-                            <exclude>src/main/java/com/game/minecraft/world/Block.java</exclude>
-                        </excludes>
+                        <!-- <excludes>
+                            <exclude>src/main/java/com/game/minecraft/world/Vertex.java</exclude>
+                        </excludes> -->
                     </java>
                 </configuration>
             </plugin>

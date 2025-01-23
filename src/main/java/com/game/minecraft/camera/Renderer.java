@@ -10,7 +10,6 @@ import com.game.minecraft.world.Chunk;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.util.Random;
 import org.joml.Matrix4f;
 import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
