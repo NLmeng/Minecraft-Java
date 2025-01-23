@@ -3,8 +3,10 @@ package com.game.minecraft.camera;
 import static org.lwjgl.opengl.GL46C.*;
 import static org.lwjgl.system.MemoryStack.stackPush;
 
-import com.game.minecraft.blocks.Block;
 import com.game.minecraft.utils.FileReader;
+import com.game.minecraft.world.Block;
+import com.game.minecraft.world.Blocks;
+import com.game.minecraft.world.Chunk;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
@@ -29,16 +31,36 @@ public class Renderer {
   private Block blockA;
   private Block blockB;
 
+  // Chunks
+  private Chunk chunkA;
+
   public void init() {
     shaderProgram = createShaderProgram(VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC);
     uMVP = glGetUniformLocation(shaderProgram, "uMVP");
     atlasTextureId = loadFullAtlas("assets/atlas.png");
 
-    blockA = new Block(256.0f, 16.0f, 0, 240, 0.0f, 0.0f, 0.0f);
-    blockB = new Block(256.0f, 16.0f, 32, 240, 1.0f, 0.0f, 0.0f);
+    blockA = new Block(0.0f, -10f, -50f, Blocks.DIRT);
+    blockB = new Block(1.0f, -10f, -50f, Blocks.STONE);
+
+    chunkA = new Chunk(0.0f, -2, 0.0f);
 
     glEnable(GL_DEPTH_TEST); // add 3d layers to models
   }
+
+  // private long lastRemovalTime;
+  // private static final long REMOVAL_INTERVAL = 10000;
+
+  // private void testRemoveRandomTopLayerBlocks(Chunk chunk) {
+  //   Random random = new Random();
+
+  //   for (int x = 0; x < Chunk.CHUNK_X; x++) {
+  //     for (int z = 0; z < Chunk.CHUNK_Z; z++) {
+  //       if (random.nextBoolean()) {
+  //         chunk.setBlockAt(x, 0, z, null);
+  //       }
+  //     }
+  //   }
+  // }
 
   public void render(Camera camera, int width, int height) {
     glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
@@ -55,19 +77,37 @@ public class Renderer {
 
     Matrix4f view = camera.getViewMatrix(); // cameras position & orient
 
-    renderBlock(blockA, projection, view, blockA.getModelMatrix4f());
-    renderBlock(blockB, projection, view, blockB.getModelMatrix4f());
+    // long currentTime = System.currentTimeMillis();
+    // if (currentTime - lastRemovalTime >= REMOVAL_INTERVAL) {
+    //   testRemoveRandomTopLayerBlocks(chunkA);
+    //   lastRemovalTime = currentTime;
+    // }
 
+    renderBlock(blockA, projection, view);
+    renderBlock(blockB, projection, view);
+
+    renderChunk(chunkA, projection, view);
     glBindVertexArray(0);
     glUseProgram(0);
   }
 
-  private void renderBlock(Block block, Matrix4f projection, Matrix4f view, Matrix4f model) {
-    Matrix4f mvp = projection.mul(view, new Matrix4f()).mul(model);
+  private void renderBlock(Block block, Matrix4f projection, Matrix4f view) {
+    renderObject(
+        projection, view, block.getModelMatrix4f(), block.getVaoId(), block.getCubeVertexCount());
+  }
+
+  private void renderChunk(Chunk chunk, Matrix4f projection, Matrix4f view) {
+    renderObject(
+        projection, view, chunk.getModelMatrix4f(), chunk.getVaoId(), chunk.getVertexCount());
+  }
+
+  private void renderObject(
+      Matrix4f projection, Matrix4f view, Matrix4f modelMatrix, int vaoId, int vertexCount) {
+    Matrix4f mvp = projection.mul(view, new Matrix4f()).mul(modelMatrix);
     setMVPUniform(mvp);
     glBindTexture(GL_TEXTURE_2D, atlasTextureId);
-    glBindVertexArray(block.getVaoId());
-    glDrawArrays(GL_TRIANGLES, 0, block.getCubeVertexCount());
+    glBindVertexArray(vaoId);
+    glDrawArrays(GL_TRIANGLES, 0, vertexCount);
   }
 
   private void setMVPUniform(Matrix4f mvp) {
@@ -87,7 +127,7 @@ public class Renderer {
     glBindTexture(GL_TEXTURE_2D, textureId);
 
     ByteBuffer imageData = FileReader.loadTextureFromResource(atlasPath);
-    STBImage.stbi_set_flip_vertically_on_load(true);
+    STBImage.stbi_set_flip_vertically_on_load(false);
 
     try (MemoryStack stack = stackPush()) {
       IntBuffer width = stack.mallocInt(1);
