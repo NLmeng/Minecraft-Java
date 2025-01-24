@@ -17,6 +17,7 @@ public class Chunk {
 
   private final Blocks[][][] blocks = new Blocks[CHUNK_X][CHUNK_Y][CHUNK_Z];
   private boolean isDirty;
+  private int blocksRenderLimit = 16 * 16 * 4;
 
   private final float xcoord, ycoord, zcoord;
 
@@ -30,7 +31,7 @@ public class Chunk {
     this.xcoord = xpos;
     this.ycoord = ypos;
     this.zcoord = zpos;
-    this.modelMatrix = new Matrix4f().translate(xcoord, ycoord, zcoord);
+    this.modelMatrix = new Matrix4f().translate(0, 0, 0);
 
     generateFlatTerrain();
     buildMesh();
@@ -65,6 +66,14 @@ public class Chunk {
     return modelMatrix;
   }
 
+  public int getNumberBlocksToRender() {
+    return blocksRenderLimit;
+  }
+
+  public void setNumberBlocksToRender(int limit) {
+    blocksRenderLimit = limit;
+  }
+
   public void setBlockAt(int x, int y, int z, Blocks block) {
     if (!inBounds(x, y, z)) {
       return;
@@ -87,13 +96,14 @@ public class Chunk {
 
   public void buildMesh() {
     List<Float> vertices = new ArrayList<>();
-
-    for (int x = 0; x < CHUNK_X; x++) {
-      for (int y = 0; y < CHUNK_Y; y++) {
-        for (int z = 0; z < CHUNK_Z; z++) {
+    int blockRendered = 0;
+    for (int y = 0; y < CHUNK_Y && blockRendered < blocksRenderLimit; y++) {
+      for (int x = 0; x < CHUNK_X && blockRendered < blocksRenderLimit; x++) {
+        for (int z = 0; z < CHUNK_Z && blockRendered < blocksRenderLimit; z++) {
           Blocks block = blocks[x][y][z];
           if (block != null) {
             addBlockToMesh(vertices, x, y, z, block);
+            blockRendered++;
           }
         }
       }
@@ -172,18 +182,22 @@ public class Chunk {
     for (int x = 0; x < CHUNK_X; x++) {
       for (int z = 0; z < CHUNK_Z; z++) {
         for (int y = 0; y < CHUNK_Y; y++) {
-          if (y == 0) {
-            blocks[x][y][z] = Blocks.GRASS;
-          } else if (y <= 4) {
-            blocks[x][y][z] = Blocks.DIRT;
-          } else if (y <= 60) {
-            blocks[x][y][z] = Blocks.STONE;
-          } else if (y <= 65) {
+          if (y >= CHUNK_Y - 5) {
             blocks[x][y][z] = Blocks.BEDROCK;
+          } else if (y >= CHUNK_Y - 60) {
+            blocks[x][y][z] = Blocks.STONE;
+          } else if (y >= CHUNK_Y - 64) {
+            blocks[x][y][z] = Blocks.DIRT;
+          } else if (y == CHUNK_Y - 65) {
+            blocks[x][y][z] = Blocks.GRASS;
           }
         }
       }
     }
+    blocks[0][CHUNK_Y - 65][0] = Blocks.BEDROCK;
+    blocks[0][CHUNK_Y - 65][15] = Blocks.BEDROCK;
+    blocks[15][CHUNK_Y - 65][15] = Blocks.BEDROCK;
+    blocks[15][CHUNK_Y - 65][0] = Blocks.BEDROCK;
   }
 
   private boolean isBlockSolid(int x, int y, int z) {
