@@ -17,7 +17,6 @@ public class Chunk {
 
   private final Blocks[][][] blocks = new Blocks[CHUNK_X][CHUNK_Y][CHUNK_Z];
   private boolean isDirty;
-  private int blocksRenderLimit = 16 * 16 * 4;
 
   private final float xcoord, ycoord, zcoord;
 
@@ -66,14 +65,6 @@ public class Chunk {
     return modelMatrix;
   }
 
-  public int getNumberBlocksToRender() {
-    return blocksRenderLimit;
-  }
-
-  public void setNumberBlocksToRender(int limit) {
-    blocksRenderLimit = limit;
-  }
-
   public void setBlockAt(int x, int y, int z, Blocks block) {
     if (!inBounds(x, y, z)) {
       return;
@@ -93,17 +84,15 @@ public class Chunk {
     }
     return blocks[x][y][z];
   }
-
+// move to world to know about neighbors
   public void buildMesh() {
     List<Float> vertices = new ArrayList<>();
-    int blockRendered = 0;
-    for (int y = 0; y < CHUNK_Y && blockRendered < blocksRenderLimit; y++) {
-      for (int x = 0; x < CHUNK_X && blockRendered < blocksRenderLimit; x++) {
-        for (int z = 0; z < CHUNK_Z && blockRendered < blocksRenderLimit; z++) {
+    for (int y = 0; y < CHUNK_Y; y++) {
+      for (int x = 0; x < CHUNK_X; x++) {
+        for (int z = 0; z < CHUNK_Z; z++) {
           Blocks block = blocks[x][y][z];
           if (block != null) {
             addBlockToMesh(vertices, x, y, z, block);
-            blockRendered++;
           }
         }
       }
