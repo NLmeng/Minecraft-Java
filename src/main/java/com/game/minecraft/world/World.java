@@ -26,28 +26,69 @@ public class World {
 
   private void manageChunks() {
     Set<ChunkCoordinate> requiredChunks =
-        calculateRequiredChunks(currentPlayerChunk, chunkLayerRadius);
+        generateChunksInSpiral(currentPlayerChunk, chunkLayerRadius);
 
     for (ChunkCoordinate coord : requiredChunks) {
       chunkMap.computeIfAbsent(coord, this::createChunk);
     }
 
     chunkMap.keySet().removeIf(coord -> !requiredChunks.contains(coord));
+
+    updateChunkNeighbors();
   }
 
-  private Set<ChunkCoordinate> calculateRequiredChunks(ChunkCoordinate origin, int layers) {
+  private void updateChunkNeighbors() {
+    for (ChunkCoordinate coord : chunkMap.keySet()) {
+      Chunk currentChunk = chunkMap.get(coord);
+
+      Chunk front = chunkMap.get(new ChunkCoordinate(coord.x(), coord.z() + 1));
+      Chunk back = chunkMap.get(new ChunkCoordinate(coord.x(), coord.z() - 1));
+      Chunk left = chunkMap.get(new ChunkCoordinate(coord.x() - 1, coord.z()));
+      Chunk right = chunkMap.get(new ChunkCoordinate(coord.x() + 1, coord.z()));
+
+      currentChunk.setNeighbor("front", front);
+      currentChunk.setNeighbor("back", back);
+      currentChunk.setNeighbor("left", left);
+      currentChunk.setNeighbor("right", right);
+    }
+  }
+
+  private static final int[][] DIRECTIONS = {
+    {1, 0}, // right
+    {0, 1}, // up
+    {-1, 0}, // left
+    {0, -1} // down
+  };
+
+  /**
+   * Starting at "origin", move in a direction "layer" numbers of time. Take a turn. After two
+   * turns, increment "layer" - meaning go in the each directions one block longer. Stop when reach
+   * "layerLimit" squared. To keep coordinates squared with a center, do 2k+1.
+   */
+  public Set<ChunkCoordinate> generateChunksInSpiral(ChunkCoordinate origin, int layerLimit) {
     Set<ChunkCoordinate> result = new HashSet<>();
-    result.add(origin);
+    int x = origin.x();
+    int z = origin.z();
+    result.add(new ChunkCoordinate(x, z));
 
-    for (int layer = 1; layer <= layers; layer++) {
-      for (int dx = -layer; dx <= layer; dx++) {
-        result.add(new ChunkCoordinate(origin.x() + dx, origin.z() - layer)); // Top edge
-        result.add(new ChunkCoordinate(origin.x() + dx, origin.z() + layer)); // Bottom edge
+    int layer = 1;
+    int layerProcessed = 0;
+    int numTurned = 0;
+    int directionIndex = 0;
+    while (result.size() < (2 * layerLimit + 1) * (2 * layerLimit + 1)) {
+      x += DIRECTIONS[directionIndex][0];
+      z += DIRECTIONS[directionIndex][1];
+      result.add(new ChunkCoordinate(x, z));
+
+      layerProcessed++;
+      if (layerProcessed == layer) {
+        numTurned++;
+        layerProcessed = 0;
+        directionIndex = (directionIndex + 1) % 4;
       }
-
-      for (int dz = -layer + 1; dz <= layer - 1; dz++) {
-        result.add(new ChunkCoordinate(origin.x() - layer, origin.z() + dz)); // Left edge
-        result.add(new ChunkCoordinate(origin.x() + layer, origin.z() + dz)); // Right edge
+      if (numTurned == 2) {
+        numTurned = 0;
+        layer++;
       }
     }
     return result;
@@ -56,7 +97,10 @@ public class World {
   private Chunk createChunk(ChunkCoordinate coord) {
     float x = coord.x() * Chunk.CHUNK_X;
     float z = coord.z() * Chunk.CHUNK_Z;
-    return new Chunk(x, 0, z);
+    // generate flat terrain for now
+    Chunk newchunk = new Chunk(x, 0, z);
+    newchunk.generateFlatTerrain();
+    return newchunk;
   }
 
   public void setChunkLayerRadius(int radius) {

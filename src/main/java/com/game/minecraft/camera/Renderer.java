@@ -55,9 +55,11 @@ public class Renderer {
     Matrix4f view = camera.getViewMatrix(); // cameras position & orient
 
     world.updatePlayerPosition(camera.getPosition().x, camera.getPosition().z);
-    for (Chunk chunk : world.getLoadedChunks())
+    for (Chunk chunk : world.getLoadedChunks()) {
+      chunk.buildMesh();
       renderObject(
           projection, view, chunk.getModelMatrix4f(), chunk.getVaoId(), chunk.getVertexCount());
+    }
 
     glBindVertexArray(0);
     glUseProgram(0);
