@@ -88,7 +88,7 @@ public class Renderer {
 
   public void setRenderDistance(int layerRadius) {
     world.setChunkLayerRadius(layerRadius);
-    zFar = layerRadius * 16 + 16;
+    zFar = layerRadius * Chunk.CHUNK_X + Chunk.CHUNK_X;
   }
 
   private int loadFullAtlas(String atlasPath) {
