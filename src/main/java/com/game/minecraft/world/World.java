@@ -9,13 +9,15 @@ import java.util.Set;
 public class World {
 
   private final Map<ChunkCoordinate, Chunk> chunkMap = new HashMap<>();
+  private final Map<ChunkCoordinate, Blocks[][][]> savedChunkData = new HashMap<>();
+
   private ChunkCoordinate currentPlayerChunk;
   private int chunkLayerRadius = 3;
 
   public void updatePlayerPosition(float playerX, float playerZ) {
-
     int playerChunkX = Math.floorDiv((int) playerX, Chunk.CHUNK_X);
     int playerChunkZ = Math.floorDiv((int) playerZ, Chunk.CHUNK_Z);
+
     ChunkCoordinate newPlayerChunk = new ChunkCoordinate(playerChunkX, playerChunkZ);
 
     if (!newPlayerChunk.equals(currentPlayerChunk)) {
@@ -32,9 +34,47 @@ public class World {
       chunkMap.computeIfAbsent(coord, this::createChunk);
     }
 
-    chunkMap.keySet().removeIf(coord -> !requiredChunks.contains(coord));
+    chunkMap
+        .keySet()
+        .removeIf(
+            coord -> {
+              if (!requiredChunks.contains(coord)) {
+                Chunk chunkToUnload = chunkMap.get(coord);
+                if (chunkToUnload != null) {
+                  saveChunkData(coord, chunkToUnload);
+                }
+                return true;
+              }
+              return false;
+            });
 
     updateChunkNeighbors();
+  }
+
+  private void saveChunkData(ChunkCoordinate coord, Chunk chunk) {
+    savedChunkData.put(coord, chunk.copyBlockData());
+  }
+
+  private Chunk createChunk(ChunkCoordinate coord) {
+    Blocks[][][] existingData = savedChunkData.remove(coord);
+    if (existingData != null) {
+      return createChunkFromSavedData(coord, existingData);
+    }
+
+    float x = coord.x() * Chunk.CHUNK_X;
+    float z = coord.z() * Chunk.CHUNK_Z;
+    Chunk newChunk = new Chunk(x, 0, z);
+    newChunk.generateFlatTerrain();
+    return newChunk;
+  }
+
+  private Chunk createChunkFromSavedData(ChunkCoordinate coord, Blocks[][][] blockData) {
+    float x = coord.x() * Chunk.CHUNK_X;
+    float z = coord.z() * Chunk.CHUNK_Z;
+    Chunk loadedChunk = new Chunk(x, 0, z);
+
+    loadedChunk.setBlockData(blockData);
+    return loadedChunk;
   }
 
   private void updateChunkNeighbors() {
@@ -92,15 +132,6 @@ public class World {
       }
     }
     return result;
-  }
-
-  private Chunk createChunk(ChunkCoordinate coord) {
-    float x = coord.x() * Chunk.CHUNK_X;
-    float z = coord.z() * Chunk.CHUNK_Z;
-    // generate flat terrain for now
-    Chunk newchunk = new Chunk(x, 0, z);
-    newchunk.generateFlatTerrain();
-    return newchunk;
   }
 
   public void setChunkLayerRadius(int radius) {

@@ -83,6 +83,29 @@ public class Chunk {
     return blocks[x][y][z];
   }
 
+  public Blocks[][][] copyBlockData() {
+    Blocks[][][] copy = new Blocks[CHUNK_X][CHUNK_Y][CHUNK_Z];
+    for (int x = 0; x < CHUNK_X; x++) {
+      for (int y = 0; y < CHUNK_Y; y++) {
+        for (int z = 0; z < CHUNK_Z; z++) {
+          copy[x][y][z] = blocks[x][y][z];
+        }
+      }
+    }
+    return copy;
+  }
+
+  public void setBlockData(Blocks[][][] data) {
+    for (int x = 0; x < CHUNK_X; x++) {
+      for (int y = 0; y < CHUNK_Y; y++) {
+        for (int z = 0; z < CHUNK_Z; z++) {
+          blocks[x][y][z] = data[x][y][z];
+        }
+      }
+    }
+    isDirty = true;
+  }
+
   public void setBlockAt(int x, int y, int z, Blocks block) {
     if (!inBounds(x, y, z)) {
       return;
