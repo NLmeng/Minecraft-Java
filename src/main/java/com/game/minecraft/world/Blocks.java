@@ -18,7 +18,7 @@ public enum Blocks {
     this.bottomY = (byte) bottomY;
     this.sideX = (byte) sideX;
     this.sideY = (byte) sideY;
-    this.isSolid = false;
+    this.isSolid = true;
   }
 
   public boolean isSolid() {
