@@ -87,9 +87,7 @@ public class Chunk {
     Blocks[][][] copy = new Blocks[CHUNK_X][CHUNK_Y][CHUNK_Z];
     for (int x = 0; x < CHUNK_X; x++) {
       for (int y = 0; y < CHUNK_Y; y++) {
-        for (int z = 0; z < CHUNK_Z; z++) {
-          copy[x][y][z] = blocks[x][y][z];
-        }
+        System.arraycopy(blocks[x][y], 0, copy[x][y], 0, CHUNK_Z);
       }
     }
     return copy;
@@ -115,6 +113,10 @@ public class Chunk {
     buildMesh();
   }
 
+  public void setDirtyAs(boolean state) {
+    isDirty = state;
+  }
+
   public void setNeighbor(String direction, Chunk neighbor) {
     switch (direction.toLowerCase()) {
       case "front":
@@ -132,6 +134,10 @@ public class Chunk {
       default:
         // TODO: exception
         break;
+    }
+    if (neighbor != null) {
+      isDirty = true;
+      neighbor.setDirtyAs(true);
     }
   }
 
@@ -181,6 +187,26 @@ public class Chunk {
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+  }
+
+  public void cleanup() {
+    if (chunkVaoId != 0) {
+      glDeleteVertexArrays(chunkVaoId);
+      chunkVaoId = 0;
+    }
+    if (chunkVboId != 0) {
+      glDeleteBuffers(chunkVboId);
+      chunkVboId = 0;
+    }
+    cleanNeighbors();
+  }
+
+  private void cleanNeighbors() {
+    if (front != null) front.setNeighbor("back", null);
+    if (back != null) back.setNeighbor("front", null);
+    if (left != null) left.setNeighbor("right", null);
+    if (right != null) right.setNeighbor("left", null);
+    front = back = left = right = null;
   }
 
   private void addBlockToMesh(List<Float> vertices, int x, int y, int z, Blocks block) {

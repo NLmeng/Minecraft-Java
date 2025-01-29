@@ -1,15 +1,19 @@
 package com.game.minecraft.world;
 
+import com.game.minecraft.utils.LRU;
+import com.game.minecraft.utils.PersistStorage;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+// TODO: add save/load world to/from UUID.
 public class World {
 
+  private static final int MAX_CONCURRENT_CHUNKS = 1*1;
   private final Map<ChunkCoordinate, Chunk> chunkMap = new HashMap<>();
-  private final Map<ChunkCoordinate, Blocks[][][]> savedChunkData = new HashMap<>();
+  private final LRU savedChunkData = new LRU(MAX_CONCURRENT_CHUNKS);
 
   private ChunkCoordinate currentPlayerChunk;
   private int chunkLayerRadius = 3;
@@ -52,11 +56,19 @@ public class World {
   }
 
   private void saveChunkData(ChunkCoordinate coord, Chunk chunk) {
+    chunk.cleanup();
     savedChunkData.put(coord, chunk.copyBlockData());
   }
 
   private Chunk createChunk(ChunkCoordinate coord) {
-    Blocks[][][] existingData = savedChunkData.remove(coord);
+    Blocks[][][] existingData = savedChunkData.get(coord);
+    if (existingData == null) {
+      existingData = PersistStorage.loadFromFile(coord);
+      if (existingData != null) {
+        savedChunkData.put(coord, existingData);
+      }
+    }
+
     if (existingData != null) {
       return createChunkFromSavedData(coord, existingData);
     }
