@@ -2,10 +2,8 @@ package com.game.minecraft.world;
 
 import static org.lwjgl.opengl.GL46C.*;
 
+import com.game.minecraft.utils.FloatArray;
 import java.nio.FloatBuffer;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
 import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;
 
@@ -17,6 +15,7 @@ public class Chunk {
   private static final int FLOATS_PER_VERTEX = 5;
 
   private final Blocks[][][] blocks = new Blocks[CHUNK_X][CHUNK_Y][CHUNK_Z];
+  private final FloatArray vertices = new FloatArray(1024);
 
   private Chunk front, back, left, right;
   private boolean isDirty, isBuilt;
@@ -94,14 +93,16 @@ public class Chunk {
   }
 
   public void setBlockData(Blocks[][][] data) {
+    boolean isChanged = false;
     for (int x = 0; x < CHUNK_X; x++) {
       for (int y = 0; y < CHUNK_Y; y++) {
         for (int z = 0; z < CHUNK_Z; z++) {
+          if (!isChanged && blocks[x][y][z] != data[x][y][z]) isChanged = true;
           blocks[x][y][z] = data[x][y][z];
         }
       }
     }
-    isDirty = true;
+    if (isChanged) this.setAsDirty();
   }
 
   public void setBlockAt(int x, int y, int z, Blocks block) {
@@ -109,64 +110,46 @@ public class Chunk {
       return;
     }
     blocks[x][y][z] = block;
+    this.setAsDirty();
+  }
+
+  public void setAsDirty() {
     isDirty = true;
-    buildMesh();
   }
 
-  public void setDirtyAs(boolean state) {
-    isDirty = state;
-  }
-
-  public void setNeighbor(String direction, Chunk neighbor) {
-    switch (direction.toLowerCase()) {
-      case "front":
-        front = neighbor;
-        break;
-      case "back":
-        back = neighbor;
-        break;
-      case "left":
-        left = neighbor;
-        break;
-      case "right":
-        right = neighbor;
-        break;
-      default:
-        // TODO: exception
-        break;
+  public void setNeighbor(Direction direction, Chunk neighbor) {
+    switch (direction) {
+      case FRONT -> front = neighbor;
+      case BACK -> back = neighbor;
+      case LEFT -> left = neighbor;
+      case RIGHT -> right = neighbor;
     }
-    if (neighbor != null) {
-      isDirty = true;
-      neighbor.setDirtyAs(true);
-    }
+    if (neighbor != null) this.setAsDirty();
   }
 
   public void buildMesh() {
     if (!isDirty) return;
 
-    List<Float> vertices = new ArrayList<>();
+    cleanupGPUResources();
+    vertices.clear();
+
     for (int y = 0; y < CHUNK_Y; y++) {
       for (int x = 0; x < CHUNK_X; x++) {
         for (int z = 0; z < CHUNK_Z; z++) {
-          addBlockToMesh(vertices, x, y, z, blocks[x][y][z]);
+          addBlockToMesh(x, y, z, blocks[x][y][z]);
         }
       }
     }
 
-    float[] vertexData = new float[vertices.size()];
-    for (int i = 0; i < vertices.size(); i++) {
-      vertexData[i] = vertices.get(i);
-    }
+    uploadMeshToGPU(vertices.elements(), vertices.size());
 
-    uploadMeshToGPU(vertexData);
-
-    this.vertexCount = vertexData.length / FLOATS_PER_VERTEX;
+    this.vertexCount = vertices.size() / FLOATS_PER_VERTEX;
     this.isDirty = false;
   }
 
-  private void uploadMeshToGPU(float[] vertexData) {
-    FloatBuffer vertexBuffer = BufferUtils.createFloatBuffer(vertexData.length);
-    vertexBuffer.put(vertexData).flip();
+  private void uploadMeshToGPU(float[] data, int count) {
+    FloatBuffer buffer = BufferUtils.createFloatBuffer(count);
+    buffer.put(data, 0, count).flip();
 
     if (chunkVaoId == 0) {
       chunkVaoId = glGenVertexArrays();
@@ -177,7 +160,7 @@ public class Chunk {
       chunkVboId = glGenBuffers();
     }
     glBindBuffer(GL_ARRAY_BUFFER, chunkVboId);
-    glBufferData(GL_ARRAY_BUFFER, vertexBuffer, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, buffer, GL_STATIC_DRAW);
 
     glVertexAttribPointer(0, 3, GL_FLOAT, false, FLOATS_PER_VERTEX * Float.BYTES, 0L);
     glEnableVertexAttribArray(0);
@@ -190,26 +173,25 @@ public class Chunk {
   }
 
   public void cleanup() {
-    if (chunkVaoId != 0) {
-      glDeleteVertexArrays(chunkVaoId);
-      chunkVaoId = 0;
-    }
-    if (chunkVboId != 0) {
-      glDeleteBuffers(chunkVboId);
-      chunkVboId = 0;
-    }
+    cleanupGPUResources();
     cleanNeighbors();
   }
 
+  private void cleanupGPUResources() {
+    if (chunkVaoId != 0) glDeleteVertexArrays(chunkVaoId);
+    if (chunkVboId != 0) glDeleteBuffers(chunkVboId);
+    chunkVaoId = chunkVboId = 0;
+  }
+
   private void cleanNeighbors() {
-    if (front != null) front.setNeighbor("back", null);
-    if (back != null) back.setNeighbor("front", null);
-    if (left != null) left.setNeighbor("right", null);
-    if (right != null) right.setNeighbor("left", null);
+    if (front != null) front.setNeighbor(Direction.BACK, null);
+    if (back != null) back.setNeighbor(Direction.FRONT, null);
+    if (left != null) left.setNeighbor(Direction.RIGHT, null);
+    if (right != null) right.setNeighbor(Direction.LEFT, null);
     front = back = left = right = null;
   }
 
-  private void addBlockToMesh(List<Float> vertices, int x, int y, int z, Blocks block) {
+  private void addBlockToMesh(int x, int y, int z, Blocks block) {
     if (block == null) return;
 
     float xPos = xcoord + x;
@@ -241,38 +223,8 @@ public class Chunk {
           vertices, xPos, yPos, zPos, block.getSideX(), block.getSideY());
   }
 
-  public void generateFlatTerrain() {
-    Random random = new Random();
-    int dirtHeight = CHUNK_Y - (60 + random.nextInt(6));
-
-    for (int x = 0; x < CHUNK_X; x++) {
-      for (int z = 0; z < CHUNK_Z; z++) {
-
-        for (int y = 0; y < CHUNK_Y; y++) {
-          if (y >= CHUNK_Y - 5) {
-            blocks[x][y][z] = Blocks.BEDROCK;
-          } else if (y >= dirtHeight) {
-            blocks[x][y][z] = Blocks.DIRT;
-          } else if (y >= CHUNK_Y - 60) {
-            blocks[x][y][z] = Blocks.STONE;
-          } else if (y == dirtHeight - 1) {
-            blocks[x][y][z] = Blocks.GRASS;
-          }
-        }
-      }
-    }
-
-    blocks[0][dirtHeight - 1][0] = Blocks.BEDROCK;
-    blocks[0][dirtHeight - 1][15] = Blocks.BEDROCK;
-    blocks[15][dirtHeight - 1][15] = Blocks.BEDROCK;
-    blocks[15][dirtHeight - 1][0] = Blocks.BEDROCK;
-
-    isBuilt = true;
-    isDirty = true;
-  }
-
   private boolean blockExistsAt(int x, int y, int z) {
-    if (!inBounds(0, y, 0)) return false;
+    if (!inBounds(0, y, 0)) return false; // theres no vertical neighbors
 
     if (x < 0) {
       if (left != null) {

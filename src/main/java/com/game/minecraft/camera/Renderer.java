@@ -17,6 +17,7 @@ public class Renderer {
 
   private final String VERTEX_SHADER_SRC = FileReader.loadFromResource("shaders/vertex.glsl");
   private final String FRAGMENT_SHADER_SRC = FileReader.loadFromResource("shaders/fragment.glsl");
+  private final int MAX_BUILD_PER_FRAME = 2;
 
   private int shaderProgram;
   private int atlasTextureId;
@@ -43,6 +44,7 @@ public class Renderer {
     glClearColor(0.1f, 0.1f, 0.2f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glUseProgram(shaderProgram);
+    glBindTexture(GL_TEXTURE_2D, atlasTextureId);
 
     Matrix4f projection =
         new Matrix4f()
@@ -54,11 +56,18 @@ public class Renderer {
 
     Matrix4f view = camera.getViewMatrix(); // cameras position & orient
 
+    Matrix4f projectionView = projection.mul(view, new Matrix4f());
+
     world.updatePlayerPosition(camera.getPosition().x, camera.getPosition().z);
-    for (Chunk chunk : world.getLoadedChunks()) {
-      chunk.buildMesh();
+
+    int buildsThisFrame = 0;
+    for (Chunk chunk : world.getActiveChunks()) {
+      if (chunk.isDirty() && buildsThisFrame < MAX_BUILD_PER_FRAME) {
+        chunk.buildMesh();
+        buildsThisFrame++;
+      }
       renderObject(
-          projection, view, chunk.getModelMatrix4f(), chunk.getVaoId(), chunk.getVertexCount());
+          projectionView, chunk.getModelMatrix4f(), chunk.getVaoId(), chunk.getVertexCount());
     }
 
     glBindVertexArray(0);
@@ -66,10 +75,9 @@ public class Renderer {
   }
 
   private void renderObject(
-      Matrix4f projection, Matrix4f view, Matrix4f modelMatrix, int vaoId, int vertexCount) {
-    Matrix4f mvp = projection.mul(view, new Matrix4f()).mul(modelMatrix);
+      Matrix4f projectionView, Matrix4f modelMatrix, int vaoId, int vertexCount) {
+    Matrix4f mvp = projectionView.mul(modelMatrix, new Matrix4f());
     setMVPUniform(mvp);
-    glBindTexture(GL_TEXTURE_2D, atlasTextureId);
     glBindVertexArray(vaoId);
     glDrawArrays(GL_TRIANGLES, 0, vertexCount);
   }
@@ -154,6 +162,10 @@ public class Renderer {
     glDeleteShader(fragmentShader);
 
     return program;
+  }
+
+  public void shutdown() {
+    world.shutdown();
   }
 
   private void checkShaderErrors(int shader, String type) {

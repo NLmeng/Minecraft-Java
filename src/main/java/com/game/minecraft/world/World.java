@@ -3,20 +3,44 @@ package com.game.minecraft.world;
 import com.game.minecraft.utils.LRU;
 import com.game.minecraft.utils.PersistStorage;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 // TODO: add save/load world to/from UUID.
 public class World {
 
-  private static final int MAX_CONCURRENT_CHUNKS = 1*1;
-  private final Map<ChunkCoordinate, Chunk> chunkMap = new HashMap<>();
-  private final LRU savedChunkData = new LRU(MAX_CONCURRENT_CHUNKS);
+  private static final String INSTANCE_WORLD_NAME = UUID.randomUUID().toString().replace("-", "");
+
+  private final Map<ChunkCoordinate, Chunk> activeChunks = new ConcurrentHashMap<>();
+  private final LRU cachedChunk;
+  private Set<ChunkCoordinate> requiredChunks;
 
   private ChunkCoordinate currentPlayerChunk;
   private int chunkLayerRadius = 3;
+
+  private Thread loaderThread;
+  private ChunkLoader chunkLoader;
+
+  public World() {
+    cachedChunk = new LRU(calculateMaxConcurrentChunks());
+    chunkLoader = new ChunkLoader();
+    loaderThread = new Thread(chunkLoader, "ChunkLoader");
+    loaderThread.start();
+    PersistStorage.setWorldInstanceName(INSTANCE_WORLD_NAME);
+  }
+
+  public void shutdown() {
+    chunkLoader.stopLoader();
+    loaderThread.interrupt();
+  }
+
+  private int calculateMaxConcurrentChunks() {
+    int baseChunks = (2 * chunkLayerRadius + 1) * (2 * chunkLayerRadius + 1);
+    return (int) (baseChunks * 1.25);
+  }
 
   public void updatePlayerPosition(float playerX, float playerZ) {
     int playerChunkX = Math.floorDiv((int) playerX, Chunk.CHUNK_X);
@@ -28,22 +52,47 @@ public class World {
       currentPlayerChunk = newPlayerChunk;
       manageChunks();
     }
+
+    checkChunkLoaderResults();
+  }
+
+  private void checkChunkLoaderResults() {
+    ChunkLoader.ChunkLoadResult result;
+    while ((result = chunkLoader.pollResult()) != null) {
+      if (result.blockData != null) {
+        cachedChunk.put(result.coord, result.blockData);
+        if (requiredChunks != null
+            && requiredChunks.contains(result.coord)
+            && !activeChunks.containsKey(result.coord)) {
+          Blocks[][][] data = cachedChunk.get(result.coord);
+          if (data != null) {
+            activeChunks.put(result.coord, createChunkFromCache(result.coord, data));
+          }
+        }
+      }
+    }
   }
 
   private void manageChunks() {
-    Set<ChunkCoordinate> requiredChunks =
-        generateChunksInSpiral(currentPlayerChunk, chunkLayerRadius);
+    requiredChunks = generateChunksInSpiral(currentPlayerChunk, chunkLayerRadius);
 
     for (ChunkCoordinate coord : requiredChunks) {
-      chunkMap.computeIfAbsent(coord, this::createChunk);
+      if (!activeChunks.containsKey(coord)) {
+        Blocks[][][] existingData = cachedChunk.get(coord);
+        if (existingData != null) {
+          activeChunks.put(coord, createChunkFromCache(coord, existingData));
+        } else {
+          chunkLoader.requestLoad(coord);
+        }
+      }
     }
 
-    chunkMap
+    activeChunks
         .keySet()
         .removeIf(
             coord -> {
               if (!requiredChunks.contains(coord)) {
-                Chunk chunkToUnload = chunkMap.get(coord);
+                Chunk chunkToUnload = activeChunks.get(coord);
                 if (chunkToUnload != null) {
                   saveChunkData(coord, chunkToUnload);
                 }
@@ -55,53 +104,33 @@ public class World {
     updateChunkNeighbors();
   }
 
-  private void saveChunkData(ChunkCoordinate coord, Chunk chunk) {
-    chunk.cleanup();
-    savedChunkData.put(coord, chunk.copyBlockData());
-  }
-
-  private Chunk createChunk(ChunkCoordinate coord) {
-    Blocks[][][] existingData = savedChunkData.get(coord);
-    if (existingData == null) {
-      existingData = PersistStorage.loadFromFile(coord);
-      if (existingData != null) {
-        savedChunkData.put(coord, existingData);
-      }
-    }
-
-    if (existingData != null) {
-      return createChunkFromSavedData(coord, existingData);
-    }
-
+  private Chunk createChunkFromCache(ChunkCoordinate coord, Blocks[][][] blocks) {
     float x = coord.x() * Chunk.CHUNK_X;
     float z = coord.z() * Chunk.CHUNK_Z;
     Chunk newChunk = new Chunk(x, 0, z);
-    newChunk.generateFlatTerrain();
+
+    newChunk.setBlockData(blocks);
     return newChunk;
   }
 
-  private Chunk createChunkFromSavedData(ChunkCoordinate coord, Blocks[][][] blockData) {
-    float x = coord.x() * Chunk.CHUNK_X;
-    float z = coord.z() * Chunk.CHUNK_Z;
-    Chunk loadedChunk = new Chunk(x, 0, z);
-
-    loadedChunk.setBlockData(blockData);
-    return loadedChunk;
+  private void saveChunkData(ChunkCoordinate coord, Chunk chunk) {
+    chunk.cleanup();
+    cachedChunk.put(coord, chunk.copyBlockData());
   }
 
   private void updateChunkNeighbors() {
-    for (ChunkCoordinate coord : chunkMap.keySet()) {
-      Chunk currentChunk = chunkMap.get(coord);
+    for (ChunkCoordinate coord : activeChunks.keySet()) {
+      Chunk currentChunk = activeChunks.get(coord);
 
-      Chunk front = chunkMap.get(new ChunkCoordinate(coord.x(), coord.z() + 1));
-      Chunk back = chunkMap.get(new ChunkCoordinate(coord.x(), coord.z() - 1));
-      Chunk left = chunkMap.get(new ChunkCoordinate(coord.x() - 1, coord.z()));
-      Chunk right = chunkMap.get(new ChunkCoordinate(coord.x() + 1, coord.z()));
+      Chunk front = activeChunks.get(new ChunkCoordinate(coord.x(), coord.z() + 1));
+      Chunk back = activeChunks.get(new ChunkCoordinate(coord.x(), coord.z() - 1));
+      Chunk left = activeChunks.get(new ChunkCoordinate(coord.x() - 1, coord.z()));
+      Chunk right = activeChunks.get(new ChunkCoordinate(coord.x() + 1, coord.z()));
 
-      currentChunk.setNeighbor("front", front);
-      currentChunk.setNeighbor("back", back);
-      currentChunk.setNeighbor("left", left);
-      currentChunk.setNeighbor("right", right);
+      currentChunk.setNeighbor(Direction.FRONT, front);
+      currentChunk.setNeighbor(Direction.BACK, back);
+      currentChunk.setNeighbor(Direction.LEFT, left);
+      currentChunk.setNeighbor(Direction.RIGHT, right);
     }
   }
 
@@ -153,11 +182,15 @@ public class World {
     }
   }
 
-  public Collection<Chunk> getLoadedChunks() {
-    return chunkMap.values();
+  public Collection<Chunk> getActiveChunks() {
+    return activeChunks.values();
   }
 
   public int getChunkLayerRadius() {
     return chunkLayerRadius;
+  }
+
+  public String getID() {
+    return INSTANCE_WORLD_NAME;
   }
 }

@@ -90,7 +90,8 @@ public class Window {
     }
   }
 
-  public void cleanup() {
+  public void cleanup(Renderer renderer) {
+    renderer.shutdown();
     glfwTerminate();
     glfwSetErrorCallback(null).free();
   }
