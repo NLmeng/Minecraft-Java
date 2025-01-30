@@ -1,6 +1,6 @@
 package com.game.minecraft.camera;
 
-import com.game.minecraft.input.Movement;
+import com.game.minecraft.utils.Direction;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
@@ -27,7 +27,7 @@ public class Camera {
     pitch = 0.0f;
   }
 
-  public void processKeyboard(Movement direction, float deltaTime) {
+  public void processKeyboard(Direction direction, float deltaTime) {
     float velocity = movementSpeed * deltaTime; // move same distance independent of fps
 
     switch (direction) {
