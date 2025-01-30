@@ -1,6 +1,6 @@
 package com.game.minecraft.world;
 
-import java.util.List;
+import com.game.minecraft.utils.FloatArray;
 
 public final class Vertex {
   public static final float ATLAS = 256.0f;
@@ -14,7 +14,7 @@ public final class Vertex {
   private Vertex() {}
 
   public static void addNormalTopFaceWithTexture(
-      List<Float> vertices, float x, float y, float z, float u, float v) {
+      FloatArray vertices, float x, float y, float z, float u, float v) {
     float uTopStart = u / ATLAS;
     float uTopEnd = (u + NORMAL_TILE) / ATLAS;
     float vTopStart = v / ATLAS;
@@ -45,7 +45,7 @@ public final class Vertex {
   }
 
   public static void addNormalBottomFaceWithTexture(
-      List<Float> vertices, float x, float y, float z, float u, float v) {
+      FloatArray vertices, float x, float y, float z, float u, float v) {
     float uBottomStart = u / ATLAS;
     float uBottomEnd = (u + NORMAL_TILE) / ATLAS;
     float vBottomStart = v / ATLAS;
@@ -76,7 +76,7 @@ public final class Vertex {
   }
 
   public static void addNormalFrontFaceWithTexture(
-      List<Float> vertices, float x, float y, float z, float u, float v) {
+      FloatArray vertices, float x, float y, float z, float u, float v) {
     float uSideStart = u / ATLAS;
     float uSideEnd = (u + NORMAL_TILE) / ATLAS;
     float vSideStart = v / ATLAS;
@@ -107,7 +107,7 @@ public final class Vertex {
   }
 
   public static void addNormalBackFaceWithTexture(
-      List<Float> vertices, float x, float y, float z, float u, float v) {
+      FloatArray vertices, float x, float y, float z, float u, float v) {
     float uSideStart = u / ATLAS;
     float uSideEnd = (u + NORMAL_TILE) / ATLAS;
     float vSideStart = v / ATLAS;
@@ -138,7 +138,7 @@ public final class Vertex {
   }
 
   public static void addNormalLeftFaceWithTexture(
-      List<Float> vertices, float x, float y, float z, float u, float v) {
+      FloatArray vertices, float x, float y, float z, float u, float v) {
     float uSideStart = u / ATLAS;
     float uSideEnd = (u + NORMAL_TILE) / ATLAS;
     float vSideStart = v / ATLAS;
@@ -169,7 +169,7 @@ public final class Vertex {
   }
 
   public static void addNormalRightFaceWithTexture(
-      List<Float> vertices, float x, float y, float z, float u, float v) {
+      FloatArray vertices, float x, float y, float z, float u, float v) {
     float uSideStart = u / ATLAS;
     float uSideEnd = (u + NORMAL_TILE) / ATLAS;
     float vSideStart = v / ATLAS;
@@ -205,7 +205,7 @@ public final class Vertex {
    * for UV texture coordinates).
    */
   private static void addFace(
-      List<Float> vertices,
+      FloatArray vertices,
       float x0,
       float y0,
       float z0,

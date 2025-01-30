@@ -17,6 +17,6 @@ public class Main {
 
     window.loop(camera, renderer);
 
-    window.cleanup();
+    window.cleanup(renderer);
   }
 }

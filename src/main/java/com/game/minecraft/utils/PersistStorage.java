@@ -12,10 +12,14 @@ import java.util.UUID;
 
 public class PersistStorage {
 
-  public static final String INSTANCE_FILE_NAME = UUID.randomUUID().toString().replace("-", "");
+  private static String fileName = UUID.randomUUID().toString().replace("-", "");
+
+  public static void setWorldInstanceName(String name) {
+    fileName = name;
+  }
 
   public static void saveToFile(ChunkCoordinate coord, Blocks[][][] data) {
-    File dir = new File(INSTANCE_FILE_NAME);
+    File dir = new File(fileName);
     if (!dir.exists()) {
       dir.mkdir();
     }
@@ -30,7 +34,7 @@ public class PersistStorage {
   }
 
   public static Blocks[][][] loadFromFile(ChunkCoordinate coord) {
-    File file = new File(INSTANCE_FILE_NAME, coord.x() + "_" + coord.z() + ".dat");
+    File file = new File(fileName, coord.x() + "_" + coord.z() + ".dat");
     if (!file.exists()) {
       return null;
     }

@@ -37,12 +37,6 @@ public class LRU {
       remove(node);
       insert(node);
       return node.val;
-    } else {
-      Blocks[][][] loaded = PersistStorage.loadFromFile(key);
-      if (loaded != null) {
-        put(key, loaded);
-        return loaded;
-      }
     }
     return null;
   }
