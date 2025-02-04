@@ -1,6 +1,7 @@
 package com.game.minecraft.world;
 
 import com.game.minecraft.utils.PersistStorage;
+import com.game.minecraft.utils.SimpleNoise;
 import java.util.Random;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
@@ -58,7 +59,7 @@ public class ChunkLoader implements Runnable {
 
         Blocks[][][] data = PersistStorage.loadFromFile(request.coord);
         if (data == null) {
-          data = generateFlatTerrainAt(request.coord);
+          data = generateNaturalTerrainAt(request.coord);
         }
 
         resultQueue.put(new ChunkLoadResult(request.coord, data));
@@ -93,6 +94,47 @@ public class ChunkLoader implements Runnable {
     blocks[0][dirtHeight - 1][15] = Blocks.BEDROCK;
     blocks[15][dirtHeight - 1][15] = Blocks.BEDROCK;
     blocks[15][dirtHeight - 1][0] = Blocks.BEDROCK;
+
+    return blocks;
+  }
+
+  public Blocks[][][] generateNaturalTerrainAt(ChunkCoordinate coord) {
+    Blocks[][][] blocks = new Blocks[Chunk.CHUNK_X][Chunk.CHUNK_Y][Chunk.CHUNK_Z];
+
+    final int baseHeight = 70; // avg ground level
+    final int amplitude = 15; // max variation above/below the base
+    final double frequency = 0.1; // smoothness
+
+    int seed = coord.hashCode();
+    SimpleNoise noiseGenerator = new SimpleNoise(seed);
+
+    for (int x = 0; x < Chunk.CHUNK_X; x++) {
+      for (int z = 0; z < Chunk.CHUNK_Z; z++) {
+        // Adjust coordinates so that adjacent chunks match up.
+        double noiseValue =
+            noiseGenerator.noise(
+                (x + coord.x() * Chunk.CHUNK_X) * frequency,
+                (z + coord.z() * Chunk.CHUNK_Z) * frequency);
+        int surfaceHeight = baseHeight + (int) (noiseValue * amplitude);
+
+        // Clamp surfaceHeight to valid bounds.
+        surfaceHeight = Math.min(Math.max(surfaceHeight, 1), Chunk.CHUNK_Y - 1);
+
+        for (int y = 0; y < Chunk.CHUNK_Y; y++) {
+          if (y < Chunk.CHUNK_Y - surfaceHeight) {
+            blocks[x][y][z] = null;
+          } else if (y == Chunk.CHUNK_Y - surfaceHeight) {
+            blocks[x][y][z] = Blocks.GRASS;
+          } else if (y < Chunk.CHUNK_Y - surfaceHeight + 3) {
+            blocks[x][y][z] = Blocks.DIRT;
+          } else if (y < Chunk.CHUNK_Y - 5) {
+            blocks[x][y][z] = Blocks.STONE;
+          } else {
+            blocks[x][y][z] = Blocks.BEDROCK;
+          }
+        }
+      }
+    }
 
     return blocks;
   }
