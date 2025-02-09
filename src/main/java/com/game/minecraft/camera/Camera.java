@@ -19,7 +19,7 @@ public class Camera {
   private float mouseSensitivity = 0.1f;
 
   public Camera() {
-    position = new Vector3f(0f, -200f, 3f);
+    position = new Vector3f(0f, -175f, 3f);
     front = new Vector3f(0f, 0f, -1f);
     up = new Vector3f(0f, 1f, 0f);
 
