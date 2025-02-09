@@ -53,7 +53,7 @@ public class ChunkLoader implements Runnable {
         if (request == null) continue;
         Blocks[][][] data = PersistStorage.loadFromFile(request.coord);
         if (data == null) {
-          data = generateTerrainAt(request.coord);
+          data = generateTerrainsAt(request.coord);
         }
         resultQueue.put(new ChunkLoadResult(request.coord, data));
       } catch (InterruptedException e) {
@@ -105,8 +105,11 @@ public class ChunkLoader implements Runnable {
    * center.
    */
   private BiomeParameters getBlendedBiomeParameters(double worldX, double worldZ) {
-    // TODO: randomize biome sizes
-    double biomeFrequency = 0.005; // low frequency = large & continuous biomes
+    double baseBiomeFrequency = 0.005; // base frequency for large biomes
+    double randomFactor = PerlinNoise.getfBM2D(worldX * 0.01, worldZ * 0.01, 2, 0.5, 2.0);
+    double randomMultiplier = 0.1 + ((randomFactor + 1) / 2) * 10; // [0.1, 10.1]
+    double biomeFrequency = baseBiomeFrequency * randomMultiplier;
+
     int biomeOctaves = 3;
     double biomePersistence = 0.5;
     double biomeLacunarity = 2.0;
@@ -182,7 +185,7 @@ public class ChunkLoader implements Runnable {
   /////////////////////////////////////////////////////////////////////////////
 
   /** Generates terrain using fBM-based height mapping and blended biome-dependent parameters. */
-  public Blocks[][][] generateTerrainAt(ChunkCoordinate coord) {
+  public Blocks[][][] generateTerrainsAt(ChunkCoordinate coord) {
     Blocks[][][] blocks = new Blocks[Chunk.CHUNK_X][Chunk.CHUNK_Y][Chunk.CHUNK_Z];
 
     int octaves = 4;

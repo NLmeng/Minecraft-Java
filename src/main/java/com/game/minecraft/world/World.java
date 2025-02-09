@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
-// TODO: add save/load world to/from UUID.
+// TODO: add save/load world to/from UUID, add/save seed
 public class World {
 
   private static final String INSTANCE_WORLD_NAME = UUID.randomUUID().toString().replace("-", "");
@@ -31,6 +31,7 @@ public class World {
     loaderThread = new Thread(chunkLoader, "ChunkLoader");
     loaderThread.start();
     PersistStorage.setWorldInstanceName(INSTANCE_WORLD_NAME);
+    PerlinNoise.setSeed(1);
   }
 
   public void shutdown() {
