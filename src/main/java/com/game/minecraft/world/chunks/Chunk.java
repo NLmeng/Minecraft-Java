@@ -2,6 +2,7 @@ package com.game.minecraft.world;
 
 import static org.lwjgl.opengl.GL46C.*;
 
+import com.game.minecraft.utils.Direction;
 import com.game.minecraft.utils.FloatArray;
 import java.nio.FloatBuffer;
 import org.joml.Matrix4f;
@@ -18,21 +19,19 @@ public class Chunk {
   private final FloatArray vertices = new FloatArray(1024);
 
   private Chunk front, back, left, right;
-  private boolean isDirty, isBuilt;
+  private boolean isDirty;
   private final float xcoord, ycoord, zcoord;
 
   private int chunkVaoId;
   private int chunkVboId;
   private int vertexCount;
-
-  private final Matrix4f modelMatrix;
+  // origin 0,0,0 and will translate through xyz in buildmesh
+  private final Matrix4f modelMatrix = new Matrix4f().translate(0, 0, 0);
 
   public Chunk(float xpos, float ypos, float zpos) {
     xcoord = xpos;
     ycoord = ypos;
     zcoord = zpos;
-
-    modelMatrix = new Matrix4f().translate(0, 0, 0);
 
     front = null;
     back = null;
@@ -40,7 +39,6 @@ public class Chunk {
     right = null;
 
     isDirty = true;
-    isBuilt = false;
   }
 
   public float getXCoord() {
@@ -119,8 +117,8 @@ public class Chunk {
 
   public void setNeighbor(Direction direction, Chunk neighbor) {
     switch (direction) {
-      case FRONT -> front = neighbor;
-      case BACK -> back = neighbor;
+      case FORWARD -> front = neighbor;
+      case BACKWARD -> back = neighbor;
       case LEFT -> left = neighbor;
       case RIGHT -> right = neighbor;
     }
@@ -184,8 +182,8 @@ public class Chunk {
   }
 
   private void cleanNeighbors() {
-    if (front != null) front.setNeighbor(Direction.BACK, null);
-    if (back != null) back.setNeighbor(Direction.FRONT, null);
+    if (front != null) front.setNeighbor(Direction.BACKWARD, null);
+    if (back != null) back.setNeighbor(Direction.FORWARD, null);
     if (left != null) left.setNeighbor(Direction.RIGHT, null);
     if (right != null) right.setNeighbor(Direction.LEFT, null);
     front = back = left = right = null;

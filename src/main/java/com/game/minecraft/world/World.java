@@ -1,5 +1,6 @@
 package com.game.minecraft.world;
 
+import com.game.minecraft.utils.Direction;
 import com.game.minecraft.utils.LRU;
 import com.game.minecraft.utils.PersistStorage;
 import java.util.Collection;
@@ -127,8 +128,8 @@ public class World {
       Chunk left = activeChunks.get(new ChunkCoordinate(coord.x() - 1, coord.z()));
       Chunk right = activeChunks.get(new ChunkCoordinate(coord.x() + 1, coord.z()));
 
-      currentChunk.setNeighbor(Direction.FRONT, front);
-      currentChunk.setNeighbor(Direction.BACK, back);
+      currentChunk.setNeighbor(Direction.FORWARD, front);
+      currentChunk.setNeighbor(Direction.BACKWARD, back);
       currentChunk.setNeighbor(Direction.LEFT, left);
       currentChunk.setNeighbor(Direction.RIGHT, right);
     }
