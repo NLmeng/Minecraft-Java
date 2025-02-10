@@ -9,6 +9,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 // TODO: add save/load world to/from UUID, add/save seed
 public class World {
@@ -25,6 +28,9 @@ public class World {
   private Thread loaderThread;
   private ChunkLoader chunkLoader;
 
+  private final ScheduledExecutorService waterSimExecutor =
+      Executors.newSingleThreadScheduledExecutor();
+
   public World() {
     cachedChunk = new LRU(calculateMaxConcurrentChunks());
     chunkLoader = new ChunkLoader();
@@ -32,9 +38,22 @@ public class World {
     loaderThread.start();
     PersistStorage.setWorldInstanceName(INSTANCE_WORLD_NAME);
     PerlinNoise.setSeed(1);
+    waterSimExecutor.scheduleAtFixedRate(
+        () -> {
+          try {
+            // System.out.println("Running water simulation at " + System.currentTimeMillis());
+            Simulator.simulateWaterFlowForActiveRegion(activeChunks);
+          } catch (Exception e) {
+            e.printStackTrace();
+          }
+        },
+        0,
+        500,
+        TimeUnit.MILLISECONDS);
   }
 
   public void shutdown() {
+    waterSimExecutor.shutdownNow();
     chunkLoader.stopLoader();
     loaderThread.interrupt();
   }
@@ -47,7 +66,6 @@ public class World {
   public void updatePlayerPosition(float playerX, float playerZ) {
     int playerChunkX = Math.floorDiv((int) playerX, Chunk.CHUNK_X);
     int playerChunkZ = Math.floorDiv((int) playerZ, Chunk.CHUNK_Z);
-
     ChunkCoordinate newPlayerChunk = new ChunkCoordinate(playerChunkX, playerChunkZ);
 
     if (!newPlayerChunk.equals(currentPlayerChunk)) {
