@@ -196,43 +196,38 @@ public class Chunk {
     float yPos = ycoord - y;
     float zPos = zcoord + z;
 
-    if (!blockExistsAt(x, y - 1, z))
+    if (!blockExistsAndNotTransparentAt(x, y - 1, z))
       Vertex.addNormalTopFaceWithTexture(
           vertices, xPos, yPos, zPos, block.getTopX(), block.getTopY());
-
-    if (!blockExistsAt(x, y + 1, z))
+    if (!blockExistsAndNotTransparentAt(x, y + 1, z))
       Vertex.addNormalBottomFaceWithTexture(
           vertices, xPos, yPos, zPos, block.getBottomX(), block.getBottomY());
-
-    if (!blockExistsAt(x, y, z + 1))
+    if (!blockExistsAndNotTransparentAt(x, y, z + 1))
       Vertex.addNormalFrontFaceWithTexture(
           vertices, xPos, yPos, zPos, block.getSideX(), block.getSideY());
-
-    if (!blockExistsAt(x, y, z - 1))
+    if (!blockExistsAndNotTransparentAt(x, y, z - 1))
       Vertex.addNormalBackFaceWithTexture(
           vertices, xPos, yPos, zPos, block.getSideX(), block.getSideY());
-
-    if (!blockExistsAt(x - 1, y, z))
+    if (!blockExistsAndNotTransparentAt(x - 1, y, z))
       Vertex.addNormalLeftFaceWithTexture(
           vertices, xPos, yPos, zPos, block.getSideX(), block.getSideY());
-
-    if (!blockExistsAt(x + 1, y, z))
+    if (!blockExistsAndNotTransparentAt(x + 1, y, z))
       Vertex.addNormalRightFaceWithTexture(
           vertices, xPos, yPos, zPos, block.getSideX(), block.getSideY());
   }
 
-  private boolean blockExistsAt(int x, int y, int z) {
+  private boolean blockExistsAndNotTransparentAt(int x, int y, int z) {
     if (!inBounds(0, y, 0)) return false; // theres no vertical neighbors
 
     if (x < 0) {
       if (left != null) {
-        return left.blockExistsAt(x + CHUNK_X, y, z);
+        return left.blockExistsAndNotTransparentAt(x + CHUNK_X, y, z);
       } else {
         return false;
       }
     } else if (x >= CHUNK_X) {
       if (right != null) {
-        return right.blockExistsAt(x - CHUNK_X, y, z);
+        return right.blockExistsAndNotTransparentAt(x - CHUNK_X, y, z);
       } else {
         return false;
       }
@@ -240,26 +235,26 @@ public class Chunk {
 
     if (z < 0) {
       if (back != null) {
-        return back.blockExistsAt(x, y, z + CHUNK_Z);
+        return back.blockExistsAndNotTransparentAt(x, y, z + CHUNK_Z);
       } else {
         return false;
       }
     } else if (z >= CHUNK_Z) {
       if (front != null) {
-        return front.blockExistsAt(x, y, z - CHUNK_Z);
+        return front.blockExistsAndNotTransparentAt(x, y, z - CHUNK_Z);
       } else {
         return false;
       }
     }
 
-    return blockExistsLocallyAt(x, y, z);
+    return blockExistsAndNotTransparentLocallyAt(x, y, z);
   }
 
-  private boolean blockExistsLocallyAt(int x, int y, int z) {
+  private boolean blockExistsAndNotTransparentLocallyAt(int x, int y, int z) {
     if (!inBounds(x, y, z)) {
       return false;
     }
-    return (blocks[x][y][z] != null);
+    return (blocks[x][y][z] != null) && (blocks[x][y][z].isSolid());
   }
 
   private boolean inBounds(int x, int y, int z) {
