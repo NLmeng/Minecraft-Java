@@ -1,14 +1,18 @@
 package com.game.minecraft.world;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
-import java.util.Queue;
 
 public class Simulator {
 
+  private static final int[][] HORIZONTAL_DIRECTIONS = {
+    {1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1}
+  };
+
   private static class FlowNode {
-    int x, y, z, distance;
+    final int x, y, z, distance;
 
     FlowNode(int x, int y, int z, int distance) {
       this.x = x;
@@ -50,9 +54,8 @@ public class Simulator {
       Blocks[][][] chunkBlocks = chunk.getAllBlocks();
       for (int x = 0; x < Chunk.CHUNK_X; x++) {
         for (int y = 0; y < Chunk.CHUNK_Y; y++) {
-          for (int z = 0; z < Chunk.CHUNK_Z; z++) {
-            regionBlocks[offsetX + x][y][offsetZ + z] = chunkBlocks[x][y][z];
-          }
+          System.arraycopy(
+              chunkBlocks[x][y], 0, regionBlocks[offsetX + x][y], offsetZ, Chunk.CHUNK_Z);
         }
       }
     }
@@ -67,9 +70,8 @@ public class Simulator {
       Blocks[][][] newChunkData = new Blocks[Chunk.CHUNK_X][Chunk.CHUNK_Y][Chunk.CHUNK_Z];
       for (int x = 0; x < Chunk.CHUNK_X; x++) {
         for (int y = 0; y < Chunk.CHUNK_Y; y++) {
-          for (int z = 0; z < Chunk.CHUNK_Z; z++) {
-            newChunkData[x][y][z] = regionBlocks[offsetX + x][y][offsetZ + z];
-          }
+          System.arraycopy(
+              regionBlocks[offsetX + x][y], offsetZ, newChunkData[x][y], 0, Chunk.CHUNK_Z);
         }
       }
       chunk.setBlockData(newChunkData);
@@ -87,9 +89,20 @@ public class Simulator {
       }
     }
 
-    Queue<FlowNode> queue = new LinkedList<>();
+    boolean[][][] isSolid = new boolean[width][height][depth];
     for (int x = 0; x < width; x++) {
       for (int y = 0; y < height; y++) {
+        for (int z = 0; z < depth; z++) {
+          isSolid[x][y][z] = (blocks[x][y][z] != null && blocks[x][y][z].isSolid());
+        }
+      }
+    }
+
+    // Breadth-first flood fill for water flow
+    Deque<FlowNode> queue = new ArrayDeque<>();
+    for (int x = 0; x < width; x++) {
+      for (int y = 0; y < height; y++) {
+        // Downward flow: allow water to flow down without limit
         for (int z = 0; z < depth; z++) {
           if (blocks[x][y][z] == Blocks.WATER1) {
             flow[x][y][z] = 0;
@@ -99,19 +112,15 @@ public class Simulator {
       }
     }
 
-    // Breadth-first flood fill for water flow
     while (!queue.isEmpty()) {
       FlowNode node = queue.poll();
       int x = node.x, y = node.y, z = node.z, d = node.distance;
-
       // Horizontal flow: allow water to flow to neighbors with limit to 7 blocks and a reset if
       // block underneath is water
-      int[][] directions = {{1, 0, 0}, {-1, 0, 0}, {0, 0, 1}, {0, 0, -1}};
-      for (int[] dir : directions) {
+      for (int[] dir : HORIZONTAL_DIRECTIONS) {
         int nx = x + dir[0], ny = y + dir[1], nz = z + dir[2];
         if (nx < 0 || nx >= width || nz < 0 || nz >= depth) continue;
-        if (ny != y) continue; // only horizontal neighbors
-        if (blocks[nx][ny][nz] == null || !blocks[nx][ny][nz].isSolid()) {
+        if (!isSolid[nx][ny][nz]) {
           if (d < 7 && (flow[nx][ny][nz] == -1 || flow[nx][ny][nz] > d + 1)) {
             blocks[nx][ny][nz] = Blocks.WATER1;
             flow[nx][ny][nz] = d + 1;
@@ -120,15 +129,12 @@ public class Simulator {
         }
       }
 
-      // Downward flow: allow water to flow down without limit
       int by = y + 1;
-      if (by < height) {
-        if (blocks[x][by][z] == null || !blocks[x][by][z].isSolid()) {
-          if (flow[x][by][z] == -1 || flow[x][by][z] > 0) {
-            blocks[x][by][z] = Blocks.WATER1;
-            flow[x][by][z] = 0;
-            queue.add(new FlowNode(x, by, z, 0));
-          }
+      if (by < height && !isSolid[x][by][z]) {
+        if (flow[x][by][z] == -1 || flow[x][by][z] > 0) {
+          blocks[x][by][z] = Blocks.WATER1;
+          flow[x][by][z] = 0;
+          queue.addFirst(new FlowNode(x, by, z, 0));
         }
       }
     }

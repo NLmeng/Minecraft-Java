@@ -48,7 +48,7 @@ public class World {
           }
         },
         0,
-        500,
+        250,
         TimeUnit.MILLISECONDS);
   }
 

@@ -22,6 +22,7 @@ public class Renderer {
   private int shaderProgram;
   private int atlasTextureId;
   private int uMVP;
+  private int uIsWater;
 
   private World world;
 
@@ -32,6 +33,7 @@ public class Renderer {
   public void init() {
     shaderProgram = createShaderProgram(VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC);
     uMVP = glGetUniformLocation(shaderProgram, "uMVP");
+    uIsWater = glGetUniformLocation(shaderProgram, "uIsWater");
     atlasTextureId = loadFullAtlas("assets/atlas.png");
 
     world = new World();
@@ -60,6 +62,7 @@ public class Renderer {
 
     world.updatePlayerPosition(camera.getPosition().x, camera.getPosition().z);
 
+    // render solid/opaques
     int buildsThisFrame = 0;
     for (Chunk chunk : world.getActiveChunks()) {
       if (chunk.isDirty() && buildsThisFrame < MAX_BUILD_PER_FRAME) {
@@ -67,8 +70,24 @@ public class Renderer {
         buildsThisFrame++;
       }
       renderObject(
-          projectionView, chunk.getModelMatrix4f(), chunk.getVaoId(), chunk.getVertexCount());
+          projectionView,
+          chunk.getModelMatrix4f(),
+          chunk.getOpaqueVaoId(),
+          chunk.getOpaqueVertexCount());
     }
+    // render water
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glUniform1i(uIsWater, 1);
+    for (Chunk chunk : world.getActiveChunks()) {
+      renderObject(
+          projectionView,
+          chunk.getModelMatrix4f(),
+          chunk.getWaterVaoId(),
+          chunk.getWaterVertexCount());
+    }
+    glUniform1i(uIsWater, 0);
+    glDisable(GL_BLEND);
 
     glBindVertexArray(0);
     glUseProgram(0);
