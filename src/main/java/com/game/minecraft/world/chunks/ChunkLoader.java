@@ -53,7 +53,7 @@ public class ChunkLoader implements Runnable {
         if (request == null) continue;
         Blocks[][][] data = PersistStorage.loadFromFile(request.coord);
         if (data == null) {
-          data = generateTerrainAt(request.coord);
+          data = generateTerrainsAt(request.coord);
         }
         resultQueue.put(new ChunkLoadResult(request.coord, data));
       } catch (InterruptedException e) {
@@ -69,10 +69,13 @@ public class ChunkLoader implements Runnable {
   private static class BiomeParameters {
     int baseHeight;
     int amplitude;
+    Biome biome;
     Blocks surfaceBlock;
     Blocks subsurfaceBlock;
 
-    BiomeParameters(int baseHeight, int amplitude, Blocks surfaceBlock, Blocks subsurfaceBlock) {
+    BiomeParameters(
+        Biome biome, int baseHeight, int amplitude, Blocks surfaceBlock, Blocks subsurfaceBlock) {
+      this.biome = biome;
       this.baseHeight = baseHeight;
       this.amplitude = amplitude;
       this.surfaceBlock = surfaceBlock;
@@ -86,13 +89,11 @@ public class ChunkLoader implements Runnable {
    * biome’s influence falls off.
    */
   private static class BiomeOption {
-    Biome biome;
     BiomeParameters params;
     double center; // the noise value at which this biome is “pure”
     double range; // how far from the center the influence drops to zero
 
-    BiomeOption(Biome biome, BiomeParameters params, double center, double range) {
-      this.biome = biome;
+    BiomeOption(BiomeParameters params, double center, double range) {
       this.params = params;
       this.center = center;
       this.range = range;
@@ -105,8 +106,11 @@ public class ChunkLoader implements Runnable {
    * center.
    */
   private BiomeParameters getBlendedBiomeParameters(double worldX, double worldZ) {
-    // TODO: randomize biome sizes
-    double biomeFrequency = 0.005; // low frequency = large & continuous biomes
+    double baseBiomeFrequency = 0.005; // base frequency for large biomes
+    double randomFactor = PerlinNoise.getfBM2D(worldX * 0.01, worldZ * 0.01, 2, 0.5, 2.0);
+    double randomMultiplier = 0.1 + ((randomFactor + 1) / 2) * 10; // [0.1, 10.1]
+    double biomeFrequency = baseBiomeFrequency * randomMultiplier;
+
     int biomeOctaves = 3;
     double biomePersistence = 0.5;
     double biomeLacunarity = 2.0;
@@ -123,23 +127,20 @@ public class ChunkLoader implements Runnable {
     BiomeOption[] options =
         new BiomeOption[] {
           new BiomeOption(
-              Biome.OCEAN, // TODO: add water
-              new BiomeParameters(Chunk.CHUNK_Y - 55, 3, null, Blocks.SAND),
+              new BiomeParameters(Biome.OCEAN, Chunk.CHUNK_Y - 60, 3, Blocks.WATER1, Blocks.SAND),
               -0.5,
               0.3),
           new BiomeOption(
-              Biome.PLAINS,
-              new BiomeParameters(Chunk.CHUNK_Y - 60, 6, Blocks.GRASS, Blocks.DIRT),
+              new BiomeParameters(Biome.PLAINS, Chunk.CHUNK_Y - 60, 6, Blocks.GRASS, Blocks.DIRT),
               -0.1,
               0.3),
           new BiomeOption(
-              Biome.DESERT,
-              new BiomeParameters(Chunk.CHUNK_Y - 60, 4, Blocks.SAND, Blocks.SAND),
+              new BiomeParameters(Biome.DESERT, Chunk.CHUNK_Y - 60, 4, Blocks.SAND, Blocks.SAND),
               0.2,
               0.3),
           new BiomeOption(
-              Biome.MOUNTAIN,
-              new BiomeParameters(Chunk.CHUNK_Y - 80, 15, Blocks.GRASS, Blocks.DIRT),
+              new BiomeParameters(
+                  Biome.MOUNTAIN, Chunk.CHUNK_Y - 85, 15, Blocks.GRASS, Blocks.DIRT),
               0.6,
               0.3)
         };
@@ -174,15 +175,22 @@ public class ChunkLoader implements Runnable {
     Blocks finalSubsurfaceBlock = dominantParams.subsurfaceBlock;
 
     return new BiomeParameters(
-        finalBaseHeight, finalAmplitude, finalSurfaceBlock, finalSubsurfaceBlock);
+        dominantParams.biome,
+        finalBaseHeight,
+        finalAmplitude,
+        finalSurfaceBlock,
+        finalSubsurfaceBlock);
   }
 
   /////////////////////////////////////////////////////////////////////////////
   // Terrain Generation
   /////////////////////////////////////////////////////////////////////////////
 
+  // NOTE: y=0 is the top and y=Chunk.CHUNK_Y-1 is the bottom
+  private static final int SEA_LEVEL = Chunk.CHUNK_Y - 60;
+
   /** Generates terrain using fBM-based height mapping and blended biome-dependent parameters. */
-  public Blocks[][][] generateTerrainAt(ChunkCoordinate coord) {
+  public Blocks[][][] generateTerrainsAt(ChunkCoordinate coord) {
     Blocks[][][] blocks = new Blocks[Chunk.CHUNK_X][Chunk.CHUNK_Y][Chunk.CHUNK_Z];
 
     int octaves = 4;
@@ -196,28 +204,87 @@ public class ChunkLoader implements Runnable {
         double worldZ = z + coord.z() * Chunk.CHUNK_Z;
 
         BiomeParameters bp = getBlendedBiomeParameters(worldX, worldZ);
-        int baseHeight = bp.baseHeight;
-        int amplitude = bp.amplitude;
-        Blocks surfaceBlock = bp.surfaceBlock;
-        Blocks subsurfaceBlock = bp.subsurfaceBlock;
 
         double noiseValue =
             PerlinNoise.getfBM2D(
                 worldX * frequency, worldZ * frequency, octaves, persistence, lacunarity);
-        int surface = baseHeight + (int) (noiseValue * amplitude);
 
-        for (int y = Chunk.CHUNK_Y - 5; y < Chunk.CHUNK_Y; y++) {
-          blocks[x][y][z] = Blocks.BEDROCK;
+        for (int y = 0; y < Chunk.CHUNK_Y; y++) {
+          blocks[x][y][z] = generateBlockBasedOn(y, bp, noiseValue);
         }
-        if (surface >= 0 && surface < Chunk.CHUNK_Y - 5) {
-          blocks[x][surface][z] = surfaceBlock;
-        }
-        for (int y = surface + 1; y < Chunk.CHUNK_Y - 5; y++) {
-          blocks[x][y][z] = subsurfaceBlock;
-        }
-        // TODO: add features (caves, water, trees, etc.)
       }
     }
     return blocks;
+  }
+
+  private Blocks generateBlockBasedOn(int height, BiomeParameters bp, double noise) {
+    int baseHeight = bp.baseHeight;
+    int amplitude = bp.amplitude;
+    int surface = baseHeight + (int) (noise * amplitude);
+
+    switch (bp.biome) {
+      case OCEAN:
+        return getOceanBlock(height, bp, surface);
+      case PLAINS:
+        return getPlainsBlock(height, bp, surface);
+      case MOUNTAIN:
+        return getMountainBlock(height, bp, surface);
+      case DESERT:
+        return getDesertBlock(height, bp, surface);
+      default:
+        return null;
+    }
+    // TODO: add features (caves, water, trees, etc.)
+  }
+
+  private Blocks getOceanBlock(int height, BiomeParameters bp, int surface) {
+    if (!heightIsBeneath(height, surface)) return null;
+
+    int bedrockTopLimit = Chunk.CHUNK_Y - (((int) surface % 5) + 2);
+    int subsurfaceTopLimit = bedrockTopLimit - (((int) surface % 10) + 25);
+
+    if (heightIsBeneath(height, bedrockTopLimit)) return Blocks.BEDROCK;
+    if (heightIsBeneath(height, subsurfaceTopLimit)) return bp.subsurfaceBlock;
+    if (heightIsBeneath(height, surface) && heightIsBeneath(height, SEA_LEVEL - 1))
+      return bp.surfaceBlock;
+
+    return null;
+  }
+
+  private Blocks getPlainsBlock(int height, BiomeParameters bp, int surface) {
+    if (height == surface) return bp.surfaceBlock;
+    if (!heightIsBeneath(height, surface)) return null;
+
+    int bedrockTopLimit = Chunk.CHUNK_Y - (((int) surface % 5) + 2);
+
+    if (!heightIsBeneath(height, bedrockTopLimit)) return bp.subsurfaceBlock;
+    if (heightIsBeneath(height, bedrockTopLimit)) return Blocks.BEDROCK;
+    return null;
+  }
+
+  private Blocks getMountainBlock(int height, BiomeParameters bp, int surface) {
+    if (height == surface) return bp.surfaceBlock;
+    if (!heightIsBeneath(height, surface)) return null;
+
+    int bedrockTopLimit = Chunk.CHUNK_Y - (((int) surface % 5) + 2);
+
+    if (!heightIsBeneath(height, bedrockTopLimit)) return bp.subsurfaceBlock;
+    if (heightIsBeneath(height, bedrockTopLimit)) return Blocks.BEDROCK;
+    return null;
+  }
+
+  private Blocks getDesertBlock(int height, BiomeParameters bp, int surface) {
+    if (height == surface) return bp.surfaceBlock;
+    if (!heightIsBeneath(height, surface)) return null;
+
+    int bedrockTopLimit = Chunk.CHUNK_Y - (((int) surface % 5) + 2);
+
+    if (!heightIsBeneath(height, bedrockTopLimit)) return bp.subsurfaceBlock;
+    if (heightIsBeneath(height, bedrockTopLimit)) return Blocks.BEDROCK;
+    return null;
+  }
+
+  private boolean heightIsBeneath(int height, int limit) {
+    return height > limit;
   }
 }
