@@ -64,6 +64,50 @@ public class PerlinNoise {
   }
 
   /**
+   * Computes 3D Perlin noise. Calculates the fractional parts, applies the fade function, and
+   * performs trilinear interpolation over the eight corners of the cube surrounding the point.
+   */
+  public static double getNoise3D(double x, double y, double z) {
+    int X = (int) Math.floor(x) & 255;
+    int Y = (int) Math.floor(y) & 255;
+    int Z = (int) Math.floor(z) & 255;
+
+    double xf = x - Math.floor(x);
+    double yf = y - Math.floor(y);
+    double zf = z - Math.floor(z);
+
+    double u = fade(xf);
+    double v = fade(yf);
+    double w = fade(zf);
+
+    int A = permFull[X] + Y;
+    int AA = permFull[A] + Z;
+    int AB = permFull[A + 1] + Z;
+    int B = permFull[X + 1] + Y;
+    int BA = permFull[B] + Z;
+    int BB = permFull[B + 1] + Z;
+
+    double gradAA = grad3(xf, yf, zf, permFull[AA]);
+    double gradBA = grad3(xf - 1, yf, zf, permFull[BA]);
+    double gradAB = grad3(xf, yf - 1, zf, permFull[AB]);
+    double gradBB = grad3(xf - 1, yf - 1, zf, permFull[BB]);
+    double gradAA1 = grad3(xf, yf, zf - 1, permFull[AA + 1]);
+    double gradBA1 = grad3(xf - 1, yf, zf - 1, permFull[BA + 1]);
+    double gradAB1 = grad3(xf, yf - 1, zf - 1, permFull[AB + 1]);
+    double gradBB1 = grad3(xf - 1, yf - 1, zf - 1, permFull[BB + 1]);
+
+    double lerpX1 = lerp(gradAA, gradBA, u);
+    double lerpX2 = lerp(gradAB, gradBB, u);
+    double lerpY1 = lerp(lerpX1, lerpX2, v);
+
+    double lerpX3 = lerp(gradAA1, gradBA1, u);
+    double lerpX4 = lerp(gradAB1, gradBB1, u);
+    double lerpY2 = lerp(lerpX3, lerpX4, v);
+
+    return lerp(lerpY1, lerpY2, w);
+  }
+
+  /**
    * Computes fractal Brownian motion at a given 2D point by summing several octaves (layers) of
    * Perlin noise, each with increasing frequency and decreasing amplitude.
    */
@@ -84,6 +128,26 @@ public class PerlinNoise {
       frequency *= lacunarity;
     }
 
+    return total / maxAmplitude;
+  }
+
+  /**
+   * Computes fractal Brownian motion at a given 3D point. Sums several octaves of 3D noise, each
+   * with increasing frequency and decreasing amplitude.
+   */
+  public static double getfBM3D(
+      double x, double y, double z, int octaves, double persistence, double lacunarity) {
+    double total = 0.0;
+    double amplitude = 0.5;
+    double frequency = 1.0;
+    double maxAmplitude = 0.0;
+    for (int i = 0; i < octaves; i++) {
+      double noiseValue = getNoise3D(x * frequency, y * frequency, z * frequency);
+      total += noiseValue * amplitude;
+      maxAmplitude += amplitude;
+      amplitude *= persistence;
+      frequency *= lacunarity;
+    }
     return total / maxAmplitude;
   }
 
@@ -112,5 +176,19 @@ public class PerlinNoise {
       default:
         return 0;
     }
+  }
+
+  /**
+   * 3D gradient function. Uses the lower 4 bits of the hash to select one of 16 possible gradient
+   * directions.
+   */
+  static double grad3(double x, double y, double z, int hash) {
+    int h = hash & 15;
+    double u = (h < 8) ? x : y;
+    double v;
+    if (h < 4) v = y;
+    else if (h == 12 || h == 14) v = x;
+    else v = z;
+    return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
   }
 }

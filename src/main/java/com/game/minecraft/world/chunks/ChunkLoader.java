@@ -198,6 +198,13 @@ public class ChunkLoader implements Runnable {
     double lacunarity = 2.0;
     double frequency = 0.125; // Controls local detail (hills, valleys)
 
+    // TODO: tune cave parameters
+    int caveOctaves = 3;
+    double cavePersistence = 0.5;
+    double caveLacunarity = 2.0;
+    double caveFrequency = 0.01; // higher frequency = more variation in cave noise
+    double caveThreshold = 0.3; // lower threshold = more blocks will be carved.
+
     for (int x = 0; x < Chunk.CHUNK_X; x++) {
       for (int z = 0; z < Chunk.CHUNK_Z; z++) {
         double worldX = x + coord.x() * Chunk.CHUNK_X;
@@ -205,12 +212,31 @@ public class ChunkLoader implements Runnable {
 
         BiomeParameters bp = getBlendedBiomeParameters(worldX, worldZ);
 
-        double noiseValue =
+        double terrainNoise =
             PerlinNoise.getfBM2D(
                 worldX * frequency, worldZ * frequency, octaves, persistence, lacunarity);
+        int surface = bp.baseHeight + (int) (terrainNoise * bp.amplitude);
 
         for (int y = 0; y < Chunk.CHUNK_Y; y++) {
-          blocks[x][y][z] = generateBlockBasedOn(y, bp, noiseValue);
+          Blocks block = generateBlockBasedOn(y, bp, terrainNoise);
+
+          double caveNoise =
+              PerlinNoise.getfBM3D(
+                  worldX * caveFrequency,
+                  y * caveFrequency, // vertical scale
+                  worldZ * caveFrequency,
+                  caveOctaves,
+                  cavePersistence,
+                  caveLacunarity);
+
+          if (heightIsBeneath(y, surface)
+              && caveNoise > caveThreshold
+              && block != Blocks.BEDROCK
+              && block != Blocks.WATER1) {
+            block = null;
+          }
+
+          blocks[x][y][z] = block;
         }
       }
     }
