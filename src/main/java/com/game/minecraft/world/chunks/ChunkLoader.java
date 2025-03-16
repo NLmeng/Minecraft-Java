@@ -234,7 +234,7 @@ public class ChunkLoader implements Runnable {
 
         int surface = bp.baseHeight + (int) (terrainNoise * bp.amplitude);
         int bedrockTopLimit = Chunk.CHUNK_Y - (((int) surface % 5) + 2);
-        int subsurfaceTopLimit = bedrockTopLimit - (((int) surface % 10) + 25);
+        int subsurfaceTopLimit = bedrockTopLimit - (((int) surface % 15) + 32);
         int upperOreTopLimit = bedrockTopLimit - (((int) surface % 10) + 42);
         int middleOreTopLimit = bedrockTopLimit - (((int) surface % 10) + 25);
         int deeperOreTopLimit = bedrockTopLimit - (((int) surface % 10) + 12);
