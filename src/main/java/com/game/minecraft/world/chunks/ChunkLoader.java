@@ -215,10 +215,10 @@ public class ChunkLoader implements Runnable {
     double caveThreshold = 0.3; // lower threshold = more blocks will be carved.
 
     // TODO: tune ore parameters
-    double oreFrequency = 0.025; // lower = larger + more coherent
     int oreOctaves = 3; // add more details
     double orePersistence = 0.5; // lower = smoother
     double oreLacunarity = 2.0; // lower = more transition = larger vein
+    double oreFrequency = 0.025; // lower = larger + more coherent
     double oreThreshold = 0.5; // higher = more ore
 
     for (int x = 0; x < Chunk.CHUNK_X; x++) {
@@ -265,8 +265,6 @@ public class ChunkLoader implements Runnable {
           if (bp.biome == Biome.OCEAN && heightIsBeneath(y, subsurfaceTopLimit)) continue;
           if (heightIsBeneath(y, upperOreTopLimit)) {
             block = bp.innerUpperBlock;
-          }
-          if (block == Blocks.STONE) {
             double oreNoise =
                 PerlinNoise.getfBM3D(
                     worldX * oreFrequency,
@@ -280,7 +278,7 @@ public class ChunkLoader implements Runnable {
               double norm = (oreNoise - oreThreshold) / (1.0 - oreThreshold);
 
               if (heightIsBeneath(y, deeperOreTopLimit)) {
-                // Deeper band: diamond, gold, iron, coal 
+                // Deeper band: diamond, gold, iron, coal
                 if (norm < 0.50) {
                   block = Blocks.COAL_ORE;
                 } else if (norm < 0.70) {
@@ -291,7 +289,7 @@ public class ChunkLoader implements Runnable {
                   block = Blocks.DIAMOND_ORE;
                 }
               } else if (heightIsBeneath(y, middleOreTopLimit)) {
-                // Middle band: gold, iron, coal 
+                // Middle band: gold, iron, coal
                 if (norm < 0.60) {
                   block = Blocks.COAL_ORE;
                 } else if (norm < 0.80) {
@@ -327,7 +325,6 @@ public class ChunkLoader implements Runnable {
       default:
         return null;
     }
-    // TODO: add features (caves, water, trees, etc.)
   }
 
   // note: thought there was a bug here (gap between layers), but its actually the cave carving into
