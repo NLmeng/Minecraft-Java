@@ -13,8 +13,13 @@ public class Chunk {
   public static final int CHUNK_X = 16;
   public static final int CHUNK_Y = 256;
   public static final int CHUNK_Z = 16;
-  private static final int FLOATS_PER_VERTEX = 5;
+
+  // 3 floats for position + 2 floats for UV + 3 floats for color = 8 total per vertex
+  private static final int FLOATS_PER_VERTEX = 8;
   private static final int STRIDE = FLOATS_PER_VERTEX * Float.BYTES;
+
+  private static final float[] LEAF_GREEN = new float[] {0.3f, 0.8f, 0.3f};
+  private static final float[] WHITE_COLOR = new float[] {1.0f, 1.0f, 1.0f};
 
   private final Blocks[][][] blocks = new Blocks[CHUNK_X][CHUNK_Y][CHUNK_Z];
   private final FloatArray opaqueVertices = new FloatArray(1024);
@@ -216,6 +221,8 @@ public class Chunk {
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 2, GL_FLOAT, false, STRIDE, 3L * Float.BYTES);
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 3, GL_FLOAT, false, STRIDE, 5L * Float.BYTES);
+    glEnableVertexAttribArray(2);
 
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
@@ -228,55 +235,74 @@ public class Chunk {
     float yPos = ycoord - y;
     float zPos = zcoord + z;
 
+    // make Leaves always green_tint, otherwise white
+    // TODO: color based on biome
+    boolean isLeaves = (block == Blocks.GREY_LEAVES);
+    float[] color = isLeaves ? LEAF_GREEN : WHITE_COLOR;
+
     if (block == Blocks.WATER1) {
-      addWaterBlockToMesh(x, y, z, xPos, yPos, zPos, block);
+      addWaterBlockToMesh(x, y, z, xPos, yPos, zPos, block, color);
     } else {
-      addOpaqueBlockFaces(x, y, z, xPos, yPos, zPos, block);
+      addOpaqueBlockFaces(x, y, z, xPos, yPos, zPos, block, color);
     }
   }
 
   private void addOpaqueBlockFaces(
-      int x, int y, int z, float xPos, float yPos, float zPos, Blocks block) {
-    if (!blockExistsAndNotTransparentAt(x, y - 1, z))
+      int x, int y, int z, float xPos, float yPos, float zPos, Blocks block, float[] color) {
+
+    if (!blockExistsAndNotTransparentAt(x, y - 1, z)) {
       Vertex.addNormalTopFaceWithTexture(
-          opaqueVertices, xPos, yPos, zPos, block.getTopX(), block.getTopY());
-    if (!blockExistsAndNotTransparentAt(x, y + 1, z))
+          opaqueVertices, xPos, yPos, zPos, block.getTopX(), block.getTopY(), color);
+    }
+    if (!blockExistsAndNotTransparentAt(x, y + 1, z)) {
       Vertex.addNormalBottomFaceWithTexture(
-          opaqueVertices, xPos, yPos, zPos, block.getBottomX(), block.getBottomY());
-    if (!blockExistsAndNotTransparentAt(x, y, z + 1))
+          opaqueVertices, xPos, yPos, zPos, block.getBottomX(), block.getBottomY(), color);
+    }
+    if (!blockExistsAndNotTransparentAt(x, y, z + 1)) {
       Vertex.addNormalFrontFaceWithTexture(
-          opaqueVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY());
-    if (!blockExistsAndNotTransparentAt(x, y, z - 1))
+          opaqueVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY(), color);
+    }
+    if (!blockExistsAndNotTransparentAt(x, y, z - 1)) {
       Vertex.addNormalBackFaceWithTexture(
-          opaqueVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY());
-    if (!blockExistsAndNotTransparentAt(x - 1, y, z))
+          opaqueVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY(), color);
+    }
+    if (!blockExistsAndNotTransparentAt(x - 1, y, z)) {
       Vertex.addNormalLeftFaceWithTexture(
-          opaqueVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY());
-    if (!blockExistsAndNotTransparentAt(x + 1, y, z))
+          opaqueVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY(), color);
+    }
+    if (!blockExistsAndNotTransparentAt(x + 1, y, z)) {
       Vertex.addNormalRightFaceWithTexture(
-          opaqueVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY());
+          opaqueVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY(), color);
+    }
   }
 
   private void addWaterBlockToMesh(
-      int x, int y, int z, float xPos, float yPos, float zPos, Blocks block) {
-    if (!waterExistsAt(x, y - 1, z))
+      int x, int y, int z, float xPos, float yPos, float zPos, Blocks block, float[] color) {
+
+    if (!waterExistsAt(x, y - 1, z)) {
       Vertex.addNormalTopFaceWithTexture(
-          waterVertices, xPos, yPos, zPos, block.getTopX(), block.getTopY());
-    if (!waterExistsAt(x, y + 1, z))
+          waterVertices, xPos, yPos, zPos, block.getTopX(), block.getTopY(), color);
+    }
+    if (!waterExistsAt(x, y + 1, z)) {
       Vertex.addNormalBottomFaceWithTexture(
-          waterVertices, xPos, yPos, zPos, block.getBottomX(), block.getBottomY());
-    if (!waterExistsAt(x, y, z + 1))
+          waterVertices, xPos, yPos, zPos, block.getBottomX(), block.getBottomY(), color);
+    }
+    if (!waterExistsAt(x, y, z + 1)) {
       Vertex.addNormalFrontFaceWithTexture(
-          waterVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY());
-    if (!waterExistsAt(x, y, z - 1))
+          waterVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY(), color);
+    }
+    if (!waterExistsAt(x, y, z - 1)) {
       Vertex.addNormalBackFaceWithTexture(
-          waterVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY());
-    if (!waterExistsAt(x - 1, y, z))
+          waterVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY(), color);
+    }
+    if (!waterExistsAt(x - 1, y, z)) {
       Vertex.addNormalLeftFaceWithTexture(
-          waterVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY());
-    if (!waterExistsAt(x + 1, y, z))
+          waterVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY(), color);
+    }
+    if (!waterExistsAt(x + 1, y, z)) {
       Vertex.addNormalRightFaceWithTexture(
-          waterVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY());
+          waterVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY(), color);
+    }
   }
 
   private boolean blockExistsAndNotTransparentAt(int x, int y, int z) {

@@ -37,6 +37,8 @@ public enum Blocks {
   REDSTONE_ORE(3, 3, 3, 3, 3, 3, true),
   // (1,4) + (1,5)
   OAKWOOD(5, 1, 5, 1, 4, 1, true),
+  // (3,5)
+  GREY_LEAVES(5, 3, 5, 3, 5, 3, true),
   // (12, 13)
   WATER1(13, 12, 13, 12, 13, 12, false);
   private final byte topX, topY;

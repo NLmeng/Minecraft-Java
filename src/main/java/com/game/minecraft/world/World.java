@@ -28,7 +28,7 @@ public class World {
   private Thread loaderThread;
   private ChunkLoader chunkLoader;
 
-  private final ScheduledExecutorService waterSimExecutor =
+  private final ScheduledExecutorService crossedRegionSimExecutor =
       Executors.newSingleThreadScheduledExecutor();
 
   public World() {
@@ -38,11 +38,12 @@ public class World {
     loaderThread.start();
     PersistStorage.setWorldInstanceName(INSTANCE_WORLD_NAME);
     PerlinNoise.setSeed(1);
-    waterSimExecutor.scheduleAtFixedRate(
+    crossedRegionSimExecutor.scheduleAtFixedRate(
         () -> {
           try {
             // System.out.println("Running water simulation at " + System.currentTimeMillis());
             Simulator.simulateWaterFlowForActiveRegion(activeChunks);
+            Simulator.decorateTreesForActiveRegion(activeChunks);
           } catch (Exception e) {
             e.printStackTrace();
           }
@@ -53,7 +54,7 @@ public class World {
   }
 
   public void shutdown() {
-    waterSimExecutor.shutdownNow();
+    crossedRegionSimExecutor.shutdownNow();
     chunkLoader.stopLoader();
     loaderThread.interrupt();
   }
