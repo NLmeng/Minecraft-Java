@@ -1,3 +1,4 @@
+package com.game.legacy;
 // legacy: update to use FloatArray
 
 // package com.game.minecraft.world;

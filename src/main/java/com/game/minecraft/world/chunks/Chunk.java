@@ -1,9 +1,11 @@
-package com.game.minecraft.world;
+package com.game.minecraft.world.chunks;
 
 import static org.lwjgl.opengl.GL46C.*;
 
 import com.game.minecraft.utils.Direction;
 import com.game.minecraft.utils.FloatArray;
+import com.game.minecraft.world.Blocks;
+import com.game.minecraft.world.Vertex;
 import java.nio.FloatBuffer;
 import org.joml.Matrix4f;
 import org.lwjgl.BufferUtils;

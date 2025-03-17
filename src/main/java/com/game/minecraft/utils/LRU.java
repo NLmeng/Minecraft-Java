@@ -1,7 +1,7 @@
 package com.game.minecraft.utils;
 
 import com.game.minecraft.world.Blocks;
-import com.game.minecraft.world.ChunkCoordinate;
+import com.game.minecraft.world.chunks.ChunkCoordinate;
 import java.util.HashMap;
 import java.util.Map;
 
