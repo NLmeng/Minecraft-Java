@@ -3,6 +3,11 @@ package com.game.minecraft.world;
 import com.game.minecraft.utils.Direction;
 import com.game.minecraft.utils.LRU;
 import com.game.minecraft.utils.PersistStorage;
+import com.game.minecraft.world.chunks.Chunk;
+import com.game.minecraft.world.chunks.ChunkCoordinate;
+import com.game.minecraft.world.chunks.ChunkLoader;
+import com.game.minecraft.world.generations.PerlinNoise;
+import com.game.minecraft.world.generations.Simulator;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
@@ -80,14 +85,14 @@ public class World {
   private void checkChunkLoaderResults() {
     ChunkLoader.ChunkLoadResult result;
     while ((result = chunkLoader.pollResult()) != null) {
-      if (result.blockData != null) {
-        cachedChunk.put(result.coord, result.blockData);
+      if (result.getBlockData() != null) {
+        cachedChunk.put(result.getCoord(), result.getBlockData());
         if (requiredChunks != null
-            && requiredChunks.contains(result.coord)
-            && !activeChunks.containsKey(result.coord)) {
-          Blocks[][][] data = cachedChunk.get(result.coord);
+            && requiredChunks.contains(result.getCoord())
+            && !activeChunks.containsKey(result.getCoord())) {
+          Blocks[][][] data = cachedChunk.get(result.getCoord());
           if (data != null) {
-            activeChunks.put(result.coord, createChunkFromCache(result.coord, data));
+            activeChunks.put(result.getCoord(), createChunkFromCache(result.getCoord(), data));
           }
         }
       }

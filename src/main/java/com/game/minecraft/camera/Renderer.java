@@ -4,8 +4,8 @@ import static org.lwjgl.opengl.GL46C.*;
 import static org.lwjgl.system.MemoryStack.stackPush;
 
 import com.game.minecraft.utils.FileReader;
-import com.game.minecraft.world.Chunk;
 import com.game.minecraft.world.World;
+import com.game.minecraft.world.chunks.Chunk;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;

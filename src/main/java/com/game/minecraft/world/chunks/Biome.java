@@ -1,4 +1,4 @@
-package com.game.minecraft.world;
+package com.game.minecraft.world.chunks;
 
 public enum Biome {
   OCEAN,

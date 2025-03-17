@@ -1,4 +1,4 @@
-package com.game.minecraft.world;
+package com.game.minecraft.world.generations;
 
 import java.util.Random;
 
