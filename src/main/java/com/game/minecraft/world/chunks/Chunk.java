@@ -29,6 +29,7 @@ public class Chunk {
 
   private Chunk front, back, left, right;
   private boolean isDirty;
+  private boolean isOreDecorated;
   private final float xcoord, ycoord, zcoord;
 
   private int opaqueVaoId;
@@ -120,6 +121,10 @@ public class Chunk {
     setAsDirty();
   }
 
+  public void setOreDecorated(boolean isOreDecorated) {
+    this.isOreDecorated = isOreDecorated;
+  }
+
   private boolean isDataEqual(Blocks[][][] data) {
     for (int x = 0; x < CHUNK_X; x++) {
       for (int y = 0; y < CHUNK_Y; y++) {
@@ -131,6 +136,10 @@ public class Chunk {
       }
     }
     return true;
+  }
+
+  public boolean isOreDecorated() {
+    return isOreDecorated;
   }
 
   public void setBlockAt(int x, int y, int z, Blocks block) {
@@ -252,27 +261,27 @@ public class Chunk {
   private void addOpaqueBlockFaces(
       int x, int y, int z, float xPos, float yPos, float zPos, Blocks block, float[] color) {
 
-    if (!blockExistsAndNotTransparentAt(x, y - 1, z)) {
+    if (!blockExistsAndNotTransparentAt(x, y - 1, z) || debugBoolean(x, y, z)) {
       Vertex.addNormalTopFaceWithTexture(
           opaqueVertices, xPos, yPos, zPos, block.getTopX(), block.getTopY(), color);
     }
-    if (!blockExistsAndNotTransparentAt(x, y + 1, z)) {
+    if (!blockExistsAndNotTransparentAt(x, y + 1, z) || debugBoolean(x, y, z)) {
       Vertex.addNormalBottomFaceWithTexture(
           opaqueVertices, xPos, yPos, zPos, block.getBottomX(), block.getBottomY(), color);
     }
-    if (!blockExistsAndNotTransparentAt(x, y, z + 1)) {
+    if (!blockExistsAndNotTransparentAt(x, y, z + 1) || debugBoolean(x, y, z)) {
       Vertex.addNormalFrontFaceWithTexture(
           opaqueVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY(), color);
     }
-    if (!blockExistsAndNotTransparentAt(x, y, z - 1)) {
+    if (!blockExistsAndNotTransparentAt(x, y, z - 1) || debugBoolean(x, y, z)) {
       Vertex.addNormalBackFaceWithTexture(
           opaqueVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY(), color);
     }
-    if (!blockExistsAndNotTransparentAt(x - 1, y, z)) {
+    if (!blockExistsAndNotTransparentAt(x - 1, y, z) || debugBoolean(x, y, z)) {
       Vertex.addNormalLeftFaceWithTexture(
           opaqueVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY(), color);
     }
-    if (!blockExistsAndNotTransparentAt(x + 1, y, z)) {
+    if (!blockExistsAndNotTransparentAt(x + 1, y, z) || debugBoolean(x, y, z)) {
       Vertex.addNormalRightFaceWithTexture(
           opaqueVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY(), color);
     }
@@ -351,5 +360,11 @@ public class Chunk {
 
   private boolean inBounds(int x, int y, int z) {
     return (x >= 0 && x < CHUNK_X && y >= 0 && y < CHUNK_Y && z >= 0 && z < CHUNK_Z);
+  }
+
+  private boolean debugBoolean(int x, int y, int z) {
+    return (inBounds(x, y, z) && blocks[x][y][z] == Blocks.IRON_ORE)
+        || (inBounds(x, y, z) && blocks[x][y][z] == Blocks.DIAMOND_ORE)
+        || (inBounds(x, y, z) && blocks[x][y][z] == Blocks.COAL_ORE);
   }
 }

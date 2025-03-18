@@ -10,7 +10,6 @@ import com.game.minecraft.input.Keyboard;
 import com.game.minecraft.input.Mouse;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.*;
-import org.lwjgl.system.*;
 
 public class Window {
 
