@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.Random;
 
+// TODO: seed the random number generator with a fixed seed (from World) for reproducibility.
 public class OreDecorator {
 
   private static final Random random = new Random();
@@ -193,8 +194,7 @@ public class OreDecorator {
       count++;
       for (int[] d : DIRECTIONS) {
         int nx = x + d[0], ny = y + d[1], nz = z + d[2];
-        if (inBounds(nx, ny, nz, region)
-            && Math.random() < 0.3) { // propagation chance
+        if (inBounds(nx, ny, nz, region) && Math.random() < 0.3) { // propagation chance
           queue.add(new int[] {nx, ny, nz});
         }
       }

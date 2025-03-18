@@ -6,6 +6,7 @@ import com.game.minecraft.world.chunks.ChunkCoordinate;
 import java.util.HashMap;
 import java.util.Map;
 
+// TODO: maybe make this once per chunk load like ore decorator
 /**
  * Merges chunks into a region, decorates the region with trees, then writes back the modified data.
  */

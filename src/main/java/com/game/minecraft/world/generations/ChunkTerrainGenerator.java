@@ -83,6 +83,31 @@ public class ChunkTerrainGenerator {
 
         int surface = bp.baseHeight + (int) (terrainNoise * bp.amplitude);
 
+        if (bp.biome == Biome.OCEAN) {
+          double oceanScale =
+              PerlinNoise.getfBM2D(worldX * 0.000001, worldZ * 0.000001, 1, 1.0, 2.0);
+          oceanScale = (oceanScale + 1) / 2; // Normalize to [0,1]
+
+          // Determine additional depth based on oceanScale using a piecewise linear function.
+          // For very small ocean areas (oceanScale near 0), only a slight depression is applied.
+          // For very large ocean areas (oceanScale near 1), the depression reaches up to
+          int minAdditionalDepth = 10; 
+          int maxAdditionalDepth = 100;
+          int additionalDepth;
+          if (oceanScale < 0.3) {
+            additionalDepth = (int) (minAdditionalDepth * (oceanScale / 0.3));
+          } else {
+            additionalDepth =
+                minAdditionalDepth
+                    + (int)
+                        ((maxAdditionalDepth - minAdditionalDepth) * ((oceanScale - 0.3) / 0.7));
+          }
+
+          int depressedSurface = surface - additionalDepth;
+          // When oceanScale is near 1, the depressed surface is almost fully applied.
+          surface = (int) (surface * (1 - oceanScale) + depressedSurface * oceanScale);
+        }
+
         int bedrockTopLimit = Chunk.CHUNK_Y - (((int) surface % 5) + 2);
         int subsurfaceTopLimit = bedrockTopLimit - (((int) surface % 15) + 32);
         int upperOreTopLimit = bedrockTopLimit - (((int) surface % 10) + 42);
@@ -145,6 +170,7 @@ public class ChunkTerrainGenerator {
             biomePersistence,
             biomeLacunarity);
 
+    // TODO: rework Ocean to make it naturally deeper and larger; rework water-related biomes to be more specific (ponds, rivers, etc.)
     // "blend" candidates
     BiomeOption[] options = {
       new BiomeOption(
@@ -196,6 +222,14 @@ public class ChunkTerrainGenerator {
 
     int finalBaseHeight = (int) (blendedBaseHeight / totalWeight);
     int finalAmplitude = (int) (blendedAmplitude / totalWeight);
+
+    // if (dominantParams.biome == Biome.OCEAN) {
+    //   double oceanScale = PerlinNoise.getfBM2D(worldX * 0.000001, worldZ * 0.000001, 1, 1.0,
+    // 2.0);
+    //   oceanScale = (oceanScale + 1) / 2;
+    //   finalAmplitude = (int) (finalAmplitude * oceanScale);
+    //   finalBaseHeight = finalBaseHeight - (int) ((1 - oceanScale) * 10);
+    // }
 
     return new BiomeParameters(
         dominantParams.biome,
