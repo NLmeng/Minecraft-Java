@@ -14,7 +14,14 @@ public class TreeDecorator {
 
   public void decorateTreesForActiveRegion(Map<ChunkCoordinate, Chunk> activeChunks) {
     // snapshot
-    Map<ChunkCoordinate, Chunk> snapshot = new HashMap<>(activeChunks);
+    Map<ChunkCoordinate, Chunk> snapshot = new HashMap<>();
+    for (Map.Entry<ChunkCoordinate, Chunk> entry : activeChunks.entrySet()) {
+      Chunk chunk = entry.getValue();
+      if (!chunk.isTreeDecorated()) {
+        snapshot.put(entry.getKey(), chunk);
+      }
+    }
+    if (snapshot.isEmpty()) return;
 
     // bound
     int minChunkX = Integer.MAX_VALUE;
@@ -67,6 +74,7 @@ public class TreeDecorator {
         }
       }
       chunk.setBlockData(newChunkData);
+      chunk.setTreeDecorated(true);
     }
   }
 

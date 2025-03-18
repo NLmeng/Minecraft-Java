@@ -91,7 +91,7 @@ public class ChunkTerrainGenerator {
           // Determine additional depth based on oceanScale using a piecewise linear function.
           // For very small ocean areas (oceanScale near 0), only a slight depression is applied.
           // For very large ocean areas (oceanScale near 1), the depression reaches up to
-          int minAdditionalDepth = 10; 
+          int minAdditionalDepth = 10;
           int maxAdditionalDepth = 100;
           int additionalDepth;
           if (oceanScale < 0.3) {
@@ -170,7 +170,8 @@ public class ChunkTerrainGenerator {
             biomePersistence,
             biomeLacunarity);
 
-    // TODO: rework Ocean to make it naturally deeper and larger; rework water-related biomes to be more specific (ponds, rivers, etc.)
+    // TODO: rework Ocean to make it naturally deeper and larger; rework water-related biomes to be
+    // more specific (ponds, rivers, etc.)
     // "blend" candidates
     BiomeOption[] options = {
       new BiomeOption(

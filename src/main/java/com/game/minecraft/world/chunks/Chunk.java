@@ -1,5 +1,17 @@
 package com.game.minecraft.world.chunks;
 
+import static org.lwjgl.opengl.GL11C.GL_FLOAT;
+import static org.lwjgl.opengl.GL15C.GL_ARRAY_BUFFER;
+import static org.lwjgl.opengl.GL15C.GL_STATIC_DRAW;
+import static org.lwjgl.opengl.GL15C.glBindBuffer;
+import static org.lwjgl.opengl.GL15C.glBufferData;
+import static org.lwjgl.opengl.GL15C.glDeleteBuffers;
+import static org.lwjgl.opengl.GL15C.glGenBuffers;
+import static org.lwjgl.opengl.GL20C.glEnableVertexAttribArray;
+import static org.lwjgl.opengl.GL20C.glVertexAttribPointer;
+import static org.lwjgl.opengl.GL30C.glBindVertexArray;
+import static org.lwjgl.opengl.GL30C.glDeleteVertexArrays;
+import static org.lwjgl.opengl.GL30C.glGenVertexArrays;
 import static org.lwjgl.opengl.GL46C.*;
 
 import com.game.minecraft.utils.Direction;
@@ -29,7 +41,9 @@ public class Chunk {
 
   private Chunk front, back, left, right;
   private boolean isDirty;
-  private boolean isOreDecorated;
+  private boolean isOreDecorated = false;
+  private boolean treeDecorated = false;
+
   private final float xcoord, ycoord, zcoord;
 
   private int opaqueVaoId;
@@ -125,6 +139,10 @@ public class Chunk {
     this.isOreDecorated = isOreDecorated;
   }
 
+  public void setTreeDecorated(boolean decorated) {
+    this.treeDecorated = decorated;
+  }
+
   private boolean isDataEqual(Blocks[][][] data) {
     for (int x = 0; x < CHUNK_X; x++) {
       for (int y = 0; y < CHUNK_Y; y++) {
@@ -140,6 +158,10 @@ public class Chunk {
 
   public boolean isOreDecorated() {
     return isOreDecorated;
+  }
+
+  public boolean isTreeDecorated() {
+    return treeDecorated;
   }
 
   public void setBlockAt(int x, int y, int z, Blocks block) {
