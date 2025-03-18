@@ -1,5 +1,17 @@
 package com.game.minecraft.world.chunks;
 
+import static org.lwjgl.opengl.GL11C.GL_FLOAT;
+import static org.lwjgl.opengl.GL15C.GL_ARRAY_BUFFER;
+import static org.lwjgl.opengl.GL15C.GL_STATIC_DRAW;
+import static org.lwjgl.opengl.GL15C.glBindBuffer;
+import static org.lwjgl.opengl.GL15C.glBufferData;
+import static org.lwjgl.opengl.GL15C.glDeleteBuffers;
+import static org.lwjgl.opengl.GL15C.glGenBuffers;
+import static org.lwjgl.opengl.GL20C.glEnableVertexAttribArray;
+import static org.lwjgl.opengl.GL20C.glVertexAttribPointer;
+import static org.lwjgl.opengl.GL30C.glBindVertexArray;
+import static org.lwjgl.opengl.GL30C.glDeleteVertexArrays;
+import static org.lwjgl.opengl.GL30C.glGenVertexArrays;
 import static org.lwjgl.opengl.GL46C.*;
 
 import com.game.minecraft.utils.Direction;
@@ -29,6 +41,9 @@ public class Chunk {
 
   private Chunk front, back, left, right;
   private boolean isDirty;
+  private boolean isOreDecorated = false;
+  private boolean treeDecorated = false;
+
   private final float xcoord, ycoord, zcoord;
 
   private int opaqueVaoId;
@@ -120,6 +135,14 @@ public class Chunk {
     setAsDirty();
   }
 
+  public void setOreDecorated(boolean isOreDecorated) {
+    this.isOreDecorated = isOreDecorated;
+  }
+
+  public void setTreeDecorated(boolean decorated) {
+    this.treeDecorated = decorated;
+  }
+
   private boolean isDataEqual(Blocks[][][] data) {
     for (int x = 0; x < CHUNK_X; x++) {
       for (int y = 0; y < CHUNK_Y; y++) {
@@ -131,6 +154,14 @@ public class Chunk {
       }
     }
     return true;
+  }
+
+  public boolean isOreDecorated() {
+    return isOreDecorated;
+  }
+
+  public boolean isTreeDecorated() {
+    return treeDecorated;
   }
 
   public void setBlockAt(int x, int y, int z, Blocks block) {
@@ -252,27 +283,27 @@ public class Chunk {
   private void addOpaqueBlockFaces(
       int x, int y, int z, float xPos, float yPos, float zPos, Blocks block, float[] color) {
 
-    if (!blockExistsAndNotTransparentAt(x, y - 1, z)) {
+    if (!blockExistsAndNotTransparentAt(x, y - 1, z) || debugBoolean(x, y, z)) {
       Vertex.addNormalTopFaceWithTexture(
           opaqueVertices, xPos, yPos, zPos, block.getTopX(), block.getTopY(), color);
     }
-    if (!blockExistsAndNotTransparentAt(x, y + 1, z)) {
+    if (!blockExistsAndNotTransparentAt(x, y + 1, z) || debugBoolean(x, y, z)) {
       Vertex.addNormalBottomFaceWithTexture(
           opaqueVertices, xPos, yPos, zPos, block.getBottomX(), block.getBottomY(), color);
     }
-    if (!blockExistsAndNotTransparentAt(x, y, z + 1)) {
+    if (!blockExistsAndNotTransparentAt(x, y, z + 1) || debugBoolean(x, y, z)) {
       Vertex.addNormalFrontFaceWithTexture(
           opaqueVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY(), color);
     }
-    if (!blockExistsAndNotTransparentAt(x, y, z - 1)) {
+    if (!blockExistsAndNotTransparentAt(x, y, z - 1) || debugBoolean(x, y, z)) {
       Vertex.addNormalBackFaceWithTexture(
           opaqueVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY(), color);
     }
-    if (!blockExistsAndNotTransparentAt(x - 1, y, z)) {
+    if (!blockExistsAndNotTransparentAt(x - 1, y, z) || debugBoolean(x, y, z)) {
       Vertex.addNormalLeftFaceWithTexture(
           opaqueVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY(), color);
     }
-    if (!blockExistsAndNotTransparentAt(x + 1, y, z)) {
+    if (!blockExistsAndNotTransparentAt(x + 1, y, z) || debugBoolean(x, y, z)) {
       Vertex.addNormalRightFaceWithTexture(
           opaqueVertices, xPos, yPos, zPos, block.getSideX(), block.getSideY(), color);
     }
@@ -351,5 +382,11 @@ public class Chunk {
 
   private boolean inBounds(int x, int y, int z) {
     return (x >= 0 && x < CHUNK_X && y >= 0 && y < CHUNK_Y && z >= 0 && z < CHUNK_Z);
+  }
+
+  private boolean debugBoolean(int x, int y, int z) {
+    return (inBounds(x, y, z) && blocks[x][y][z] == Blocks.IRON_ORE)
+        || (inBounds(x, y, z) && blocks[x][y][z] == Blocks.DIAMOND_ORE)
+        || (inBounds(x, y, z) && blocks[x][y][z] == Blocks.COAL_ORE);
   }
 }

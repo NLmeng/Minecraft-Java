@@ -49,6 +49,7 @@ public class World {
             // System.out.println("Running water simulation at " + System.currentTimeMillis());
             Simulator.simulateWaterFlowForActiveRegion(activeChunks);
             Simulator.decorateTreesForActiveRegion(activeChunks);
+            Simulator.decorateOresForActiveRegion(activeChunks);
           } catch (Exception e) {
             e.printStackTrace();
           }

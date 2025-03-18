@@ -6,6 +6,7 @@ import com.game.minecraft.world.chunks.ChunkCoordinate;
 import java.util.HashMap;
 import java.util.Map;
 
+// TODO: maybe make this once per chunk load like ore decorator
 /**
  * Merges chunks into a region, decorates the region with trees, then writes back the modified data.
  */
@@ -13,7 +14,14 @@ public class TreeDecorator {
 
   public void decorateTreesForActiveRegion(Map<ChunkCoordinate, Chunk> activeChunks) {
     // snapshot
-    Map<ChunkCoordinate, Chunk> snapshot = new HashMap<>(activeChunks);
+    Map<ChunkCoordinate, Chunk> snapshot = new HashMap<>();
+    for (Map.Entry<ChunkCoordinate, Chunk> entry : activeChunks.entrySet()) {
+      Chunk chunk = entry.getValue();
+      if (!chunk.isTreeDecorated()) {
+        snapshot.put(entry.getKey(), chunk);
+      }
+    }
+    if (snapshot.isEmpty()) return;
 
     // bound
     int minChunkX = Integer.MAX_VALUE;
@@ -66,6 +74,7 @@ public class TreeDecorator {
         }
       }
       chunk.setBlockData(newChunkData);
+      chunk.setTreeDecorated(true);
     }
   }
 

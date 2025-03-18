@@ -7,7 +7,7 @@ import com.game.minecraft.world.chunks.ChunkCoordinate;
 
 /**
  * Generate new (deep copy) chunk data (blocks[][][]) if not found on disk. Apply biome blending,
- * terrain shape, caves, and ore distribution.
+ * terrain shape, caves distribution.
  */
 public class ChunkTerrainGenerator {
 
@@ -68,13 +68,6 @@ public class ChunkTerrainGenerator {
     double caveFrequency = 0.01;
     double caveThreshold = 0.3;
 
-    // Ore noise config
-    int oreOctaves = 3;
-    double orePersistence = 0.5;
-    double oreLacunarity = 2.0;
-    double oreFrequency = 0.025;
-    double oreThreshold = 0.5;
-
     for (int x = 0; x < Chunk.CHUNK_X; x++) {
       for (int z = 0; z < Chunk.CHUNK_Z; z++) {
         double worldX = x + coord.x() * (double) Chunk.CHUNK_X;
@@ -90,12 +83,34 @@ public class ChunkTerrainGenerator {
 
         int surface = bp.baseHeight + (int) (terrainNoise * bp.amplitude);
 
-        // Pick some random "bedrock / subsurface / ore" thresholds
+        if (bp.biome == Biome.OCEAN) {
+          double oceanScale =
+              PerlinNoise.getfBM2D(worldX * 0.000001, worldZ * 0.000001, 1, 1.0, 2.0);
+          oceanScale = (oceanScale + 1) / 2; // Normalize to [0,1]
+
+          // Determine additional depth based on oceanScale using a piecewise linear function.
+          // For very small ocean areas (oceanScale near 0), only a slight depression is applied.
+          // For very large ocean areas (oceanScale near 1), the depression reaches up to
+          int minAdditionalDepth = 10;
+          int maxAdditionalDepth = 100;
+          int additionalDepth;
+          if (oceanScale < 0.3) {
+            additionalDepth = (int) (minAdditionalDepth * (oceanScale / 0.3));
+          } else {
+            additionalDepth =
+                minAdditionalDepth
+                    + (int)
+                        ((maxAdditionalDepth - minAdditionalDepth) * ((oceanScale - 0.3) / 0.7));
+          }
+
+          int depressedSurface = surface - additionalDepth;
+          // When oceanScale is near 1, the depressed surface is almost fully applied.
+          surface = (int) (surface * (1 - oceanScale) + depressedSurface * oceanScale);
+        }
+
         int bedrockTopLimit = Chunk.CHUNK_Y - (((int) surface % 5) + 2);
         int subsurfaceTopLimit = bedrockTopLimit - (((int) surface % 15) + 32);
         int upperOreTopLimit = bedrockTopLimit - (((int) surface % 10) + 42);
-        int middleOreTopLimit = bedrockTopLimit - (((int) surface % 10) + 25);
-        int deeperOreTopLimit = bedrockTopLimit - (((int) surface % 10) + 12);
 
         for (int y = 0; y < Chunk.CHUNK_Y; y++) {
           Blocks block = generateBlockBasedOn(y, bp, surface, bedrockTopLimit, subsurfaceTopLimit);
@@ -119,45 +134,14 @@ public class ChunkTerrainGenerator {
 
           blocks[x][y][z] = block;
 
-          // Generate ore
           if (block == null || block == Blocks.WATER1 || block == Blocks.BEDROCK) {
             continue;
           }
-          // Ocean floors skip ore logic
           if (bp.biome == Biome.OCEAN && heightIsBeneath(y, subsurfaceTopLimit)) {
             continue;
           }
           if (heightIsBeneath(y, upperOreTopLimit)) {
             block = bp.innerUpperBlock;
-
-            double oreNoise =
-                PerlinNoise.getfBM3D(
-                    worldX * oreFrequency,
-                    y * oreFrequency,
-                    worldZ * oreFrequency,
-                    oreOctaves,
-                    orePersistence,
-                    oreLacunarity);
-            if (oreNoise > oreThreshold) {
-              double norm = (oreNoise - oreThreshold) / (1.0 - oreThreshold);
-              // Deeper band: diamond/gold/iron/coal
-              if (heightIsBeneath(y, deeperOreTopLimit)) {
-                if (norm < 0.50) block = Blocks.COAL_ORE;
-                else if (norm < 0.70) block = Blocks.IRON_ORE;
-                else if (norm < 0.85) block = Blocks.GOLD_ORE;
-                else block = Blocks.DIAMOND_ORE;
-              }
-              // Middle band: gold/iron/coal
-              else if (heightIsBeneath(y, middleOreTopLimit)) {
-                if (norm < 0.60) block = Blocks.COAL_ORE;
-                else if (norm < 0.80) block = Blocks.IRON_ORE;
-                else block = Blocks.GOLD_ORE;
-              }
-              // Upper band: only coal
-              else if (heightIsBeneath(y, upperOreTopLimit)) {
-                block = Blocks.COAL_ORE;
-              }
-            }
           }
 
           blocks[x][y][z] = block;
@@ -186,6 +170,8 @@ public class ChunkTerrainGenerator {
             biomePersistence,
             biomeLacunarity);
 
+    // TODO: rework Ocean to make it naturally deeper and larger; rework water-related biomes to be
+    // more specific (ponds, rivers, etc.)
     // "blend" candidates
     BiomeOption[] options = {
       new BiomeOption(
@@ -237,6 +223,14 @@ public class ChunkTerrainGenerator {
 
     int finalBaseHeight = (int) (blendedBaseHeight / totalWeight);
     int finalAmplitude = (int) (blendedAmplitude / totalWeight);
+
+    // if (dominantParams.biome == Biome.OCEAN) {
+    //   double oceanScale = PerlinNoise.getfBM2D(worldX * 0.000001, worldZ * 0.000001, 1, 1.0,
+    // 2.0);
+    //   oceanScale = (oceanScale + 1) / 2;
+    //   finalAmplitude = (int) (finalAmplitude * oceanScale);
+    //   finalBaseHeight = finalBaseHeight - (int) ((1 - oceanScale) * 10);
+    // }
 
     return new BiomeParameters(
         dominantParams.biome,
